@@ -1,0 +1,48 @@
+# Application Settings
+application:
+  name: "Jarvis"
+  log_level: "INFO"
+  log_format: "%(asctime)s %(levelname)s %(name)s ─ %(message)s"
+  default_location: "Palaiseau, France" 
+
+# TTS Engine Configuration
+tts:
+  engine: "kokoro"  # Options: "coqui", "fast", "kokoro"
+  kokoro:
+    lang_code: "a"  # 'a' => American English
+    voice: "am_liam" # "am_onyx"
+    sample_rate: 24000
+  fast:
+    en_model: "tts_models/en/ljspeech/tacotron2-DDC"
+    de_model: "tts_models/de/thorsten/vits"
+  coqui:
+    repo_id: "coqui/XTTS-v2"
+
+# ASR (Speech Recognition) Configuration
+# ASR (Speech Recognition) Configuration
+asr:
+  engine: "whisper"  # Changed from speechbrain to whisper
+  whisper:
+    model_size: "small"  # Options: tiny, base, small, medium, large-v2
+    model_id: "openai/whisper-small"
+    device: "auto"  # "auto", "cpu", "cuda", or "mps"
+    language: null  # null for automatic detection, or use "en", "de", etc.
+    task: "transcribe"  # "transcribe" or "translate" (to English)
+  # Keep old config for backward compatibility
+  en:
+    source: "speechbrain/asr-wav2vec2-commonvoice-en"
+    savedir: "pretrained_models/asr-en"
+  de:
+    source: "speechbrain/asr-wav2vec2-commonvoice-de"
+    savedir: "pretrained_models/asr-de"
+
+# LLM (Language Model) Configuration
+llm:
+  repo_id: "bartowski/mlabonne_Qwen3-8B-abliterated-GGUF" # "bartowski/mlabonne_Qwen3-14B-abliterated-GGUF" #"bartowski/deepcogito_cogito-v1-preview-llama-8B-GGUF"
+  filename: "mlabonne_Qwen3-8B-abliterated-Q4_K_M.gguf" # "mlabonne_Qwen3-14B-abliterated-Q4_K_M.gguf" #"deepcogito_cogito-v1-preview-llama-8B-Q4_K_M.gguf"
+  local_dir: "pretrained_models/llm"
+  tokenizer_name: "mlabonne/Qwen3-8B-abliterated" # "mlabonne/Qwen3-14B-abliterated" # "deepcogito/cogito-v1-preview-llama-8B"
+  context_size: 5120
+  threads: 12
+  batch_size: 1024
+  use_gpu: true  # Set to false to use CPU only

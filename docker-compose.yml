@@ -1,0 +1,8 @@
+version: "3.8"
+services:
+  jarvis:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/models:/app/models

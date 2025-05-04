@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+speechbrain
+soundfile
+TTS
+huggingface_hub
+CMAKE_ARGS="-DLLAMA_METAL=ON" FORCE_CMAKE=1 pip install llama-cpp-python
+librosa

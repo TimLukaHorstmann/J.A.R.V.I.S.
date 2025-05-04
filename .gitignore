@@ -1,0 +1,8 @@
+backend/pretrained_models/
+backend/wav2vec2_checkpoint/
+backend/model_checkpoints/
+backend/llama.cpp/
+backend/llama-cpp-python/
+backend/logs/
+backend/voice_samples/
+backend/temp/

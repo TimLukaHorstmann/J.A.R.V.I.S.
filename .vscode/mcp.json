@@ -1,0 +1,51 @@
+{
+  "mcp": {
+    "inputs": [
+      {
+        "type": "promptString",
+        "id": "maps_api_key",
+        "description": "Google Maps API Key",
+        "password": true
+      },
+      {
+        "type": "promptString",
+        "id": "brave_api_key",
+        "description": "Brave Search API Key",
+        "password": true
+      },
+      {
+        "type": "promptString",
+        "id": "accuweather_api_key",
+        "description": "AccuWeather API Key",
+        "password": true
+      }
+    ],
+    "servers": {
+      "google-maps": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-google-maps"],
+        "env": {
+          "GOOGLE_MAPS_API_KEY": "${input:maps_api_key}"
+        }
+      },
+      "brave-search": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+        "env": {
+          "BRAVE_API_KEY": "${input:brave_api_key}"
+        }
+      },
+      "fetch": {
+        "command": "uvx",
+        "args": ["mcp-server-fetch"]
+      },
+      "weather": {
+            "command": "uvx",
+            "args": ["--from", "git+https://github.com/adhikasp/mcp-weather.git", "mcp-weather"],
+            "env": {
+                "ACCUWEATHER_API_KEY": "${input:accuweather_api_key}"
+            }
+        }
+    }
+  }
+}
