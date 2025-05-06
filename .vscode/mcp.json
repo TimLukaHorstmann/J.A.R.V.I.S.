@@ -40,12 +40,12 @@
         "args": ["mcp-server-fetch"]
       },
       "weather": {
-            "command": "uvx",
-            "args": ["--from", "git+https://github.com/adhikasp/mcp-weather.git", "mcp-weather"],
-            "env": {
-                "ACCUWEATHER_API_KEY": "${input:accuweather_api_key}"
-            }
+        "command": "npx",
+        "args": ["-y", "@timlukahorstmann/mcp-weather"],
+        "env": {
+          "ACCUWEATHER_API_KEY": "${input:accuweather_api_key}"
         }
+      }
     }
   }
 }

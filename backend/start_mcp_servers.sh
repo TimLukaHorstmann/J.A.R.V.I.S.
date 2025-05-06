@@ -58,7 +58,7 @@ npx -y supergateway --stdio "uvx mcp-server-fetch" \
 PIDS+=($!)
 
 # Weather MCP
-npx -y supergateway --stdio "uvx --from git+https://github.com/adhikasp/mcp-weather.git mcp-weather" \
+npx -y supergateway --stdio "npx -y @timlukahorstmann/mcp-weather" \
   --port 4004 \
   --baseUrl http://127.0.0.1:4004 \
   --ssePath /messages \
@@ -68,6 +68,11 @@ npx -y supergateway --stdio "uvx --from git+https://github.com/adhikasp/mcp-weat
   > logs/weather.log 2>&1 &
 PIDS+=($!)
 
-printf "%s\n" "${PIDS[@]}" > .mcp_pids
+{
+  echo "${PIDS[0]} 4001"
+  echo "${PIDS[1]} 4002"
+  echo "${PIDS[2]} 4003"
+  echo "${PIDS[3]} 4004"
+} > .mcp_pids
 echo "Started, PIDs: ${PIDS[*]}"
 echo "All MCP servers started in background."
