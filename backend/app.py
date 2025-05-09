@@ -12,6 +12,7 @@ import time
 import yaml
 import ffmpeg
 import asyncio
+import re
 
 from fastapi import FastAPI, WebSocket, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse, StreamingResponse
@@ -119,7 +120,7 @@ async def startup_event():
 # ─── OpenAI‐compatible HTTP chat endpoint (proxy) ──────────────────────────────
 @app.post("/v1/chat/completions")
 async def chat_completions(req: dict):
-    # Only support the llama-cpp “model” name here
+    # Only support the llama-cpp "model" name here
     if req.get("model") != "llama-cpp":
         raise HTTPException(status_code=404, detail="Model not found")
 
@@ -386,25 +387,28 @@ def transcribe(buffer: bytes, language: str = None, format_info: str = None) -> 
 
 
 def synthesize(text: str, lang: str = "en") -> bytes:
+    # Strip markdown syntax for TTS to avoid reading special characters
+    text_for_tts = strip_markdown(text)
+    
     # Fallback for fast and other engines
     buf = io.BytesIO()
     if TTS_ENGINE == "coqui":
         sample_clip = os.path.join(repo_path, "samples", f"{lang}_sample.wav")
         sample_clip = sample_clip if os.path.exists(sample_clip) else "luka.wav"
         gpt_latent, speaker_emb = model.get_conditioning_latents(audio_path=[sample_clip])
-        out = model.inference(text, lang, gpt_latent, speaker_emb)
+        out = model.inference(text_for_tts, lang, gpt_latent, speaker_emb)
         sf.write(buf, out["wav"], samplerate=coqui_config.audio["sample_rate"], format="WAV")
 
     elif TTS_ENGINE == "kokoro":
         # Glue all chunks into one buffer
         parts = []
-        for chunk in synthesize_stream_kokoro(text):
+        for chunk in synthesize_stream_kokoro(text_for_tts):
             parts.append(chunk)
         buf.write(b"".join(parts))
         return buf.getvalue()
     else:
         tts_model = tts_de if lang == "de" else tts_en
-        wav = tts_model.tts(text)
+        wav = tts_model.tts(text_for_tts)
         sr = tts_model.synthesizer.output_sample_rate
         sf.write(buf, wav, samplerate=sr, format="WAV")
     return buf.getvalue()
@@ -414,10 +418,13 @@ def synthesize_stream_xtts(text: str, lang: str = "en"):
     """
     Yields raw WAV‐encoded chunks from XTTS-v2 via inference_stream().
     """
+    # Strip markdown syntax for TTS to avoid reading special characters
+    text_for_tts = strip_markdown(text)
+    
     # grab your precomputed latents
     gpt_latent, speaker_emb = xtts_latents[lang]
     # the inference_stream generator
-    for torch_chunk in model.inference_stream(text, lang, gpt_latent, speaker_emb):
+    for torch_chunk in model.inference_stream(text_for_tts, lang, gpt_latent, speaker_emb):
         # convert to numpy 1d array
         wav = torch_chunk.squeeze().cpu().numpy()
         # pack into a tiny WAV file in memory
@@ -429,7 +436,10 @@ def synthesize_stream_kokoro(text: str):
     """
     Yields raw WAV‑encoded chunks from Kokoro via streaming pipeline.
     """
-    for gs, ps, audio in kokoro_pipeline(text, voice=kokoro_voice):
+    # Strip markdown syntax for TTS to avoid reading special characters
+    text_for_tts = strip_markdown(text)
+    
+    for gs, ps, audio in kokoro_pipeline(text_for_tts, voice=kokoro_voice):
         buf = io.BytesIO()
         # write 24000 Hz WAV
         sf.write(buf, audio, samplerate=kokoro_sample_rate, format="WAV")
@@ -439,6 +449,58 @@ def determine_lang(reply: str) -> str:
     # Simple heuristic based on German characters (uncommented)
     return "de" # if any(ch in reply.lower() for ch in ("ä","ö","ü","ß")) else "en"
 
+# Add function to strip markdown syntax for TTS
+def strip_markdown(text: str) -> str:
+    """
+    Remove markdown formatting for TTS to avoid reading special characters.
+    """
+    # Replace common markdown elements
+    result = text
+    
+    # Headers
+    result = re.sub(r'^#+\s+', '', result, flags=re.MULTILINE)
+    
+    # Bold and italic
+    result = re.sub(r'\*\*(.*?)\*\*', r'\1', result)
+    result = re.sub(r'\*(.*?)\*', r'\1', result)
+    result = re.sub(r'__(.*?)__', r'\1', result)
+    result = re.sub(r'_(.*?)_', r'\1', result)
+    
+    # Lists
+    result = re.sub(r'^\s*[-*+]\s+', '', result, flags=re.MULTILINE)
+    result = re.sub(r'^\s*\d+\.\s+', '', result, flags=re.MULTILINE)
+    
+    # Links
+    result = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', result)
+    
+    # Images
+    result = re.sub(r'!\[(.*?)\]\(.*?\)', r'\1', result)
+    
+    # Code blocks and inline code
+    result = re.sub(r'```(?:.*?)?\n(.*?)\n```', r'\1', result, flags=re.DOTALL)
+    result = re.sub(r'`(.*?)`', r'\1', result)
+    
+    # Blockquotes
+    result = re.sub(r'^\s*>\s+', '', result, flags=re.MULTILINE)
+    
+    # HTML tags
+    result = re.sub(r'<.*?>', '', result)
+    
+    # Horizontal rules
+    result = re.sub(r'^\s*(?:-{3,}|\*{3,}|_{3,})\s*$', '', result, flags=re.MULTILINE)
+    
+    # Table formatting
+    result = re.sub(r'\|', ' ', result)
+    result = re.sub(r'^\s*[-:]+\s*$', '', result, flags=re.MULTILINE)
+    
+    # Escape characters
+    result = re.sub(r'\\(.)', r'\1', result)
+    
+    # Double line breaks to single line breaks and normalize spacing
+    result = re.sub(r'\n\s*\n', '\n', result)
+    result = re.sub(r'\s+', ' ', result).strip()
+    
+    return result
 
 # ─── 8) WebSocket endpoint (unchanged) ────────────────────────────────────────
 @app.websocket("/ws")
@@ -579,7 +641,7 @@ async def ws_endpoint(ws: WebSocket):
                 text = transcribe(buf, language=current_request_language, format_info=audio_format)
                 await ws.send_json({
                     "event": "transcription",
-                    "text": text or "Sorry, couldn’t understand."
+                    "text": text or "Sorry, couldn't understand."
                 })
                 await handle_input(text, current_request_language)
 

@@ -215,36 +215,153 @@ body {
   border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
+/* Enhanced message avatar styling */
 .message-avatar {
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   position: absolute;
-  bottom: -8px;
-  font-size: 16px;
-  background: var(--primary-color);
+  bottom: -10px;
+  font-size: 18px;
   color: white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
   animation: bounceIn 0.5s ease;
-  border: 2px solid white;
+  border: 3px solid white;
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+  z-index: 5;
 }
 
 .user .message-avatar {
-  right: -8px;
-  background: var(--primary-dark);
+  right: -10px;
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
 }
 
 .jarvis .message-avatar {
-  left: -8px;
-  background: var(--success-color);
+  left: -10px;
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+}
+
+.message-avatar i {
+  font-size: 20px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.message-avatar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.1);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.message-avatar:hover::after {
+  opacity: 1;
 }
 
 .message-content {
   word-wrap: break-word;
   line-height: 1.6;
+}
+
+/* Markdown styling for message content */
+.message-content h1, 
+.message-content h2, 
+.message-content h3, 
+.message-content h4 {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+}
+
+.message-content h1 { font-size: 1.4rem; }
+.message-content h2 { font-size: 1.3rem; }
+.message-content h3 { font-size: 1.2rem; }
+.message-content h4 { font-size: 1.1rem; }
+
+.message-content ul, 
+.message-content ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.message-content ul li, 
+.message-content ol li {
+  margin-bottom: 0.3em;
+}
+
+.message-content a {
+  color: var(--primary-dark);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.message-content pre {
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.5em;
+  border-radius: 5px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.85em;
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+
+.message-content code {
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.9em;
+}
+
+.message-content pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+.message-content p {
+  margin: 0.5em 0;
+}
+
+.message-content blockquote {
+  border-left: 3px solid var(--primary-color);
+  padding-left: 0.8em;
+  margin: 0.5em 0;
+  color: rgba(30, 41, 59, 0.8);
+  font-style: italic;
+}
+
+.message-content img {
+  max-width: 100%;
+  border-radius: 5px;
+  margin: 0.5em 0;
+}
+
+.message-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5em 0;
+}
+
+.message-content th,
+.message-content td {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 0.4em 0.6em;
+  text-align: left;
+}
+
+.message-content th {
+  background-color: rgba(0, 0, 0, 0.03);
+  font-weight: 600;
 }
 
 .typing-indicator {
@@ -561,10 +678,13 @@ body {
   overflow: hidden;
   max-height: 0;
   transition: max-height 0.3s ease;
+  opacity: 0;
 }
 
 .tool-call:not(.collapsed) .tool-content {
   max-height: 500px;
+  opacity: 1;
+  margin-top: 12px;
 }
 
 .tool-status {
@@ -726,6 +846,32 @@ body {
     color: #E2E8F0;
     border-left: 1px solid rgba(99, 102, 241, 0.2);
     border-top: 1px solid rgba(99, 102, 241, 0.2);
+  }
+
+  /* Dark mode styles for markdown content */
+  .message-content a {
+    color: var(--primary-light);
+  }
+
+  .message-content pre {
+    background-color: rgba(0, 0, 0, 0.2);
+  }
+
+  .message-content code {
+    background-color: rgba(0, 0, 0, 0.2);
+  }
+
+  .message-content blockquote {
+    color: rgba(226, 232, 240, 0.8);
+  }
+
+  .message-content th,
+  .message-content td {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .message-content th {
+    background-color: rgba(255, 255, 255, 0.05);
   }
   
   .typing-indicator {
