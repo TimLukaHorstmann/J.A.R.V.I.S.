@@ -6,3 +6,7 @@ backend/llama-cpp-python/
 backend/logs/
 backend/voice_samples/
 backend/temp/
+backend/node_modules/
+backend/__pycache__/
+.env
+.mcp_pids

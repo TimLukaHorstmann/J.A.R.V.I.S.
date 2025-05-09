@@ -1,8 +1,47 @@
+# docker-compose.yml (at your project root)
 version: "3.8"
+
 services:
-  jarvis:
-    build: ./backend
+  # ────────────────────────────────────────────────
+  # 1) MCP servers in a lightweight Node container
+  mcp:
+    image: node:18-slim
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env      # GOOGLE_MAPS_API_KEY, BRAVE_API_KEY, ACCUWEATHER_API_KEY in here
+    command: ["bash", "start_mcp_servers.sh"]
+    ports:
+      - "4001:4001"  # Google Maps MCP
+      - "4002:4002"  # Brave Search MCP
+      - "4003:4003"  # Fetch MCP
+      - "4004:4004"  # Weather MCP
+
+  # ────────────────────────────────────────────────
+  # 2) Llama-CPP Python server
+  llm:
+    build:
+      context: .
+      dockerfile: Dockerfile.llm
+    volumes:
+      - ./backend/models:/app/pretrained_models/llm    # mount your .gguf files here
     ports:
       - "8000:8000"
+
+  # ────────────────────────────────────────────────
+  # 3) Jarvis FastAPI app
+  jarvis:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      - mcp
+      - llm
     volumes:
+      - ./backend:/app
       - ./backend/models:/app/models
+    env_file:
+      - .env      # any other env vars you need
+    ports:
+      - "8080:8080"

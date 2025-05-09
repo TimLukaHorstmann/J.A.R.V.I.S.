@@ -38,10 +38,10 @@ asr:
 
 # LLM (Language Model) Configuration
 llm:
-  repo_id: "bartowski/mlabonne_Qwen3-8B-abliterated-GGUF" # "bartowski/mlabonne_Qwen3-14B-abliterated-GGUF" #"bartowski/deepcogito_cogito-v1-preview-llama-8B-GGUF"
-  filename: "mlabonne_Qwen3-8B-abliterated-Q4_K_M.gguf" # "mlabonne_Qwen3-14B-abliterated-Q4_K_M.gguf" #"deepcogito_cogito-v1-preview-llama-8B-Q4_K_M.gguf"
+  repo_id: "bartowski/mlabonne_Qwen3-4B-abliterated-GGUF" # "bartowski/mlabonne_Qwen3-14B-abliterated-GGUF" #"bartowski/deepcogito_cogito-v1-preview-llama-8B-GGUF"
+  filename: "mlabonne_Qwen3-4B-abliterated-Q4_K_M.gguf" # "mlabonne_Qwen3-14B-abliterated-Q4_K_M.gguf" #"deepcogito_cogito-v1-preview-llama-8B-Q4_K_M.gguf"
   local_dir: "pretrained_models/llm"
-  tokenizer_name: "mlabonne/Qwen3-8B-abliterated" # "mlabonne/Qwen3-14B-abliterated" # "deepcogito/cogito-v1-preview-llama-8B"
+  tokenizer_name: "mlabonne/Qwen3-4B-abliterated" # "mlabonne/Qwen3-14B-abliterated" # "deepcogito/cogito-v1-preview-llama-8B"
   context_size: 5120
   threads: 12
   batch_size: 1024
