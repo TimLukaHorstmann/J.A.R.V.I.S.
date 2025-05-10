@@ -566,84 +566,36 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 10px;
-  font-family: var(--font-family);
-}
-
-.tool-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background-color: rgba(99, 102, 241, 0.15);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--primary-color);
-  animation: pulse 2s infinite;
-}
-
-.tool-name {
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: var(--primary-color);
-}
-
-.tool-code {
-  padding: 12px;
-  background-color: rgba(255, 255, 255, 0.5);
-  border-radius: 8px;
-  margin-top: 10px;
-  transition: all 0.3s ease;
-  white-space: pre-wrap;
-  overflow-x: auto;
-}
-
-.tool-result {
-  margin-top: 12px;
-  padding: 12px;
-  background-color: rgba(16, 185, 129, 0.1);
-  border-left: 3px solid var(--success-color);
-  border-radius: 8px;
-  font-family: monospace;
-  font-size: 0.85rem;
-  animation: slideIn 0.5s ease;
-}
-
-.message.tool-message {
-  max-width: 85%;  /* Make tool messages wider */
-}
-
-.tool-title {
-  font-weight: 600;
-  font-size: 1.1rem;
-  margin-bottom: 12px;
-  color: var(--primary-dark);
-  border-bottom: 1px solid rgba(99, 102, 241, 0.2);
-  padding-bottom: 8px;
-}
-
-.tool-call {
-  margin: 8px 0;
-  padding: 16px;
-  background-color: rgba(99, 102, 241, 0.08);
-  border-radius: 16px;
-  border-left: 4px solid var(--primary-color);
-  font-family: monospace;
-  font-size: 0.85rem;
-  color: #1E293B;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  position: relative;
-  animation: fadeIn 0.5s ease;
-}
-
-.tool-call-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
   margin-bottom: 0;
   font-family: var(--font-family);
   cursor: pointer;
+}
+
+.tool-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.tool-retry-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background-color: rgba(244, 63, 94, 0.1);
+  color: var(--danger-color);
+  border: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+}
+
+.tool-retry-btn:hover {
+  background-color: rgba(244, 63, 94, 0.2);
+  transform: rotate(30deg);
 }
 
 .tool-call.collapsed .tool-call-header {
@@ -687,6 +639,54 @@ body {
   margin-top: 12px;
 }
 
+.tool-code-container, 
+.tool-result-container {
+  position: relative;
+  width: 100%;
+}
+
+.tool-copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.8);
+  color: #64748B;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  opacity: 0.5;
+}
+
+.tool-copy-btn:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.95);
+  color: var(--primary-color);
+}
+
+.tool-code-container:hover .tool-copy-btn,
+.tool-result-container:hover .tool-copy-btn {
+  opacity: 0.9;
+}
+
+.tool-error {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: rgba(244, 63, 94, 0.1);
+  border-left: 3px solid var(--danger-color);
+  border-radius: 6px;
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  color: #be123c;
+  animation: fadeIn 0.5s ease;
+}
+
 .tool-status {
   display: inline-block;
   padding: 2px 6px;
@@ -706,10 +706,46 @@ body {
   color: #065f46;
 }
 
+.tool-status.error {
+  background-color: rgba(244, 63, 94, 0.2);
+  color: #be123c;
+  animation: pulse 2s infinite;
+}
+
 @media (prefers-color-scheme: dark) {
   .tool-title {
     color: var(--primary-light);
     border-bottom-color: rgba(99, 102, 241, 0.4);
+  }
+  
+  .tool-copy-btn {
+    background-color: rgba(30, 41, 59, 0.6);
+    color: #94A3B8;
+  }
+
+  .tool-copy-btn:hover {
+    background-color: rgba(30, 41, 59, 0.9);
+    color: var(--primary-light);
+  }
+
+  .tool-error {
+    background-color: rgba(244, 63, 94, 0.2);
+    color: #fb7185;
+  }
+  
+  .tool-status.pending {
+    background-color: rgba(247, 144, 9, 0.3);
+    color: #fbbf24;
+  }
+  
+  .tool-status.completed {
+    background-color: rgba(16, 185, 129, 0.3);
+    color: #34d399;
+  }
+  
+  .tool-status.error {
+    background-color: rgba(244, 63, 94, 0.3);
+    color: #fb7185;
   }
 }
 
@@ -727,18 +763,6 @@ body {
 @keyframes slideIn {
   from { opacity: 0; transform: translateX(-10px); }
   to { opacity: 1; transform: translateX(0); }
-}
-
-@media (prefers-color-scheme: dark) {
-  .tool-status.pending {
-    background-color: rgba(247, 144, 9, 0.3);
-    color: #fbbf24;
-  }
-  
-  .tool-status.completed {
-    background-color: rgba(16, 185, 129, 0.3);
-    color: #34d399;
-  }
 }
 
 /* Responsive */
@@ -965,6 +989,8 @@ body {
   border-bottom: 1px solid rgba(99, 102, 241, 0.1);
   background-color: transparent;
   box-shadow: none;
+  opacity: 0.95; /* Start slightly faded to make appearance more noticeable */
+  transition: opacity 0.3s ease;
 }
 
 .tool-call:last-child {
@@ -990,31 +1016,54 @@ body {
 }
 
 .tool-code {
-  padding: 10px;
-  background-color: rgba(255, 255, 255, 0.6);
-  border-radius: 6px;
-  font-size: 0.8rem;
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  margin-top: 10px;
+  transition: all 0.3s ease;
+  white-space: pre-wrap;
+  overflow-x: auto;
 }
 
 .tool-result {
-  margin-top: 10px;
-  padding: 10px;
+  margin-top: 12px;
+  padding: 12px;
   background-color: rgba(16, 185, 129, 0.1);
   border-left: 3px solid var(--success-color);
-  border-radius: 6px;
-  font-size: 0.8rem;
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 0.85rem;
+  animation: slideIn 0.5s ease;
 }
 
 .tool-icon {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background-color: rgba(99, 102, 241, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-color);
 }
 
-.tool-toggle {
-  width: 22px;
-  height: 22px;
-  right: 12px;
-  top: 12px;
+.tool-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--primary-color);
+}
+
+.tool-title {
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: 12px;
+  color: var(--primary-dark);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+  padding-bottom: 8px;
+}
+
+.message.tool-message {
+  max-width: 85%;  /* Make tool messages wider */
 }
 
 .message.assistant-thinking {
@@ -1096,4 +1145,69 @@ pre.tool-code, pre.tool-result {
   .tool-result {
     background-color: rgba(16, 185, 129, 0.15);
   }
+}
+
+/* Error message styling */
+.error-message .message-content {
+  color: #be123c;
+}
+
+.error-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background-color: rgba(244, 63, 94, 0.1);
+  border-radius: 10px;
+  border-left: 3px solid var(--danger-color);
+}
+
+.error-container i {
+  color: var(--danger-color);
+  font-size: 1.1rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .error-container {
+    background-color: rgba(244, 63, 94, 0.2);
+    color: #fb7185;
+  }
+}
+
+/* Ensure tools container is clearly visible */
+.message.assistant-thinking .tools-container {
+  animation: fadeIn 0.5s ease;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* Add subtle highlight to tool call on first appearance */
+@keyframes toolHighlight {
+  0% { background-color: rgba(99, 102, 241, 0.2); }
+  100% { background-color: transparent; }
+}
+
+.tool-call:first-child {
+  animation: toolHighlight 2s ease-out;
+}
+
+/* Make sure tool headers are clearly visible */
+.tools-header {
+  font-weight: 600;
+  background-color: rgba(99, 102, 241, 0.1);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+}
+
+/* Adding spinning animation for processing tools */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.tool-icon.processing {
+  animation: spin 1.5s infinite linear;
+}
+
+.tool-icon.pulsing {
+  animation: pulse 2s infinite;
 }

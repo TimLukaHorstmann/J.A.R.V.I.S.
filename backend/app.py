@@ -38,6 +38,7 @@ from kokoro import KPipeline
 from qwen_agent.agents import Assistant
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
+
 # ─── Your custom tool registration ────────────────────────────────────────────
 from qwen_agent.tools.base import BaseTool, register_tool
 
@@ -90,7 +91,7 @@ app = FastAPI()
 server_map = {
   "google_maps": { "url": "http://127.0.0.1:4001/messages", "transport": "sse" },
   "brave_search": { "url": "http://127.0.0.1:4002/messages", "transport": "sse" },
-  "fetch": { "url": "http://127.0.0.1:4003/messages", "transport": "sse" },
+  "mcp-fetch": { "url": "http://127.0.0.1:4003/messages", "transport": "sse" },
   "weather": { "url": "http://127.0.0.1:4004/messages", "transport": "sse" },
 }   
 
@@ -100,15 +101,11 @@ assistant = None
 @app.on_event("startup")
 async def startup_event():
     global assistant
-
-    # 1) LLM config for llama-cpp-python
     llm_cfg = {
         "model": "llama-cpp",
         "model_server": "http://localhost:8000/v1",
         "api_key": "EMPTY",
     }
-
-    # 2) Pass both your MCP servers _and_ your custom tool
     function_list = [
         {"mcpServers": server_map},
         "magic_function",
@@ -120,7 +117,7 @@ async def startup_event():
 # ─── OpenAI‐compatible HTTP chat endpoint (proxy) ──────────────────────────────
 @app.post("/v1/chat/completions")
 async def chat_completions(req: dict):
-    # Only support the llama-cpp "model" name here
+
     if req.get("model") != "llama-cpp":
         raise HTTPException(status_code=404, detail="Model not found")
 
@@ -157,7 +154,6 @@ whisper_model = WhisperForConditionalGeneration.from_pretrained(model_id).to(dev
 
 # ─── 3) TTS setup ─────────────────────────────────────────────────────────────
 add_safe_globals([XttsConfig, XttsAudioConfig, BaseDatasetConfig, XttsArgs])
-# (Load Coqui / Kokoro / fast tts as in your original snippet…)
 if TTS_ENGINE == "coqui":
     print("Downloading XTTS-v2 repo…")
     repo_path = snapshot_download(repo_id=config["tts"]["coqui"]["repo_id"])
@@ -179,15 +175,12 @@ if TTS_ENGINE == "coqui":
             other_dict = self.to_dict()
             return self_dict == other_dict
 
-    # After loading the XTTS model (assuming 'model' is your XTTS model instance)
-    # Access the existing generation_config
     gen_cfg = (
         model.gpt.gpt_inference.generation_config
         if hasattr(model.gpt, "gpt_inference")
         else model.gpt.model.generation_config
     )
 
-    # Create a new instance of PatchedGenerationConfig with the existing config's attributes
     patched_gen_cfg = PatchedGenerationConfig(**gen_cfg.to_dict())
 
     # Handle pad_token_id if it's None
@@ -226,10 +219,8 @@ if TTS_ENGINE == "coqui":
 
 elif TTS_ENGINE == "kokoro":
     print("Loading Kokoro TTS model...")
-    # Make sure you have installed: kokoro>=0.9.2 and espeak-ng (on Mac: brew install espeak-ng)
     kokoro_pipeline = KPipeline(lang_code=config["tts"]["kokoro"]["lang_code"])
     kokoro_voice = config["tts"]["kokoro"]["voice"]
-    # Kokoro sample rate from config
     kokoro_sample_rate = config["tts"]["kokoro"]["sample_rate"]
     print("Kokoro TTS model loaded.")
 
@@ -242,7 +233,7 @@ else:
     )
     print("Fast TTS models loaded.")
 # ─── 7) Transcription & synthesis helpers ─────────────────────────────────────
-def transcribe(buffer: bytes, language: str = None, format_info: str = None) -> str: # <-- Add language parameter
+def transcribe(buffer: bytes, language: str = None, format_info: str = None) -> str:
     """
     Transcribe audio buffer to text using Whisper.
 
@@ -333,9 +324,8 @@ def transcribe(buffer: bytes, language: str = None, format_info: str = None) -> 
         whisper_forced_language = language # Use the language passed to the function
         
         if whisper_forced_language or whisper_task: # Use the function's language variable
-            forced_decoder_ids_list = [] # Renamed to avoid confusion
+            forced_decoder_ids_list = []
             
-            # Add language token if specified
             if whisper_forced_language:
                 try:
                     # Ensure language code is valid for Whisper tokenizer
@@ -365,10 +355,7 @@ def transcribe(buffer: bytes, language: str = None, format_info: str = None) -> 
         predicted_ids = whisper_model.generate(
             input_features,
             forced_decoder_ids=forced_decoder_ids,
-            max_length=448,  # Reasonable maximum length
-            # Consider adding beam search for potentially better results, but slower:
-            # num_beams=5, 
-            # early_stopping=True
+            max_length=448,
         )
     
     # Decode the token ids to text
@@ -382,8 +369,6 @@ def transcribe(buffer: bytes, language: str = None, format_info: str = None) -> 
     logger.info(f"Whisper transcription completed in {elapsed:.2f}s: '{transcription}'")
 
     return transcription
-
-
 
 
 def synthesize(text: str, lang: str = "en") -> bytes:
@@ -421,9 +406,7 @@ def synthesize_stream_xtts(text: str, lang: str = "en"):
     # Strip markdown syntax for TTS to avoid reading special characters
     text_for_tts = strip_markdown(text)
     
-    # grab your precomputed latents
     gpt_latent, speaker_emb = xtts_latents[lang]
-    # the inference_stream generator
     for torch_chunk in model.inference_stream(text_for_tts, lang, gpt_latent, speaker_emb):
         # convert to numpy 1d array
         wav = torch_chunk.squeeze().cpu().numpy()
@@ -449,12 +432,10 @@ def determine_lang(reply: str) -> str:
     # Simple heuristic based on German characters (uncommented)
     return "de" # if any(ch in reply.lower() for ch in ("ä","ö","ü","ß")) else "en"
 
-# Add function to strip markdown syntax for TTS
 def strip_markdown(text: str) -> str:
     """
     Remove markdown formatting for TTS to avoid reading special characters.
     """
-    # Replace common markdown elements
     result = text
     
     # Headers
@@ -496,13 +477,29 @@ def strip_markdown(text: str) -> str:
     # Escape characters
     result = re.sub(r'\\(.)', r'\1', result)
     
+    # Strip emojis and special characters
+    emoji_pattern = re.compile("["
+                               u"\U0001F600-\U0001F64F"  # emoticons
+                               u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+                               u"\U0001F680-\U0001F6FF"  # transport & map symbols
+                               u"\U0001F700-\U0001F77F"  # alchemical symbols
+                               u"\U0001F780-\U0001F7FF"  # Geometric Shapes
+                               u"\U0001F800-\U0001F8FF"  # Supplemental Arrows-C
+                               u"\U0001F900-\U0001F9FF"  # Supplemental Symbols and Pictographs
+                               u"\U0001FA00-\U0001FA6F"  # Chess Symbols
+                               u"\U0001FA70-\U0001FAFF"  # Symbols and Pictographs Extended-A
+                               u"\U00002702-\U000027B0"  # Dingbats
+                               u"\U000024C2-\U0001F251" 
+                               "]+", flags=re.UNICODE)
+    result = emoji_pattern.sub(r'', result)  # Remove emojis completely
+    
     # Double line breaks to single line breaks and normalize spacing
     result = re.sub(r'\n\s*\n', '\n', result)
     result = re.sub(r'\s+', ' ', result).strip()
     
     return result
 
-# ─── 8) WebSocket endpoint (unchanged) ────────────────────────────────────────
+# ─── 8) WebSocket endpoint ────────────────────────────────────────
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
 
@@ -516,9 +513,9 @@ async def ws_endpoint(ws: WebSocket):
     audio_format = None
     audio_chunks: List[bytes] = []
     seen_tools = {}  # Dictionary to track seen tools and their arguments
+    failed_tools = {}  # Dictionary to track failed tool calls and their error messages
 
     messages = [{"role": "system",  "content": system_prompt}] # this stores the chat history
-    # Update the handle_input function for better tool call handling
 
     async def handle_input(user_content: str, input_language: str):
         await ws.send_json({"event": "processing", "text": "🤖 Jarvis is thinking…"})
@@ -526,26 +523,57 @@ async def ws_endpoint(ws: WebSocket):
             messages.append({"role": "user", "content": "/no_think" + user_content})
             current_tool = None
             last_assistant_content = ""
+            
+            # Enhanced logging for better debugging
+            logger.info(f"Processing user input (lang: {input_language}): {user_content}")
+            
+            # Track already processed tool calls in this session to avoid duplicates
+            processed_tool_calls = set()
+            
+            # store the last response to avoid duplicate tool_results
+            last_function_response = None
+            
+            # Store the entire previous state of responses to detect actual changes
+            previous_responses_state = None
 
             # stream through the assistant
             for responses in assistant.run(messages=messages):
+                # Safety check - make sure responses is not empty
+                if not responses:
+                    logger.warning("Received empty responses from assistant")
+                    continue
+                
+                # Compare with previous state to detect real changes
+                current_responses_state = json.dumps([r.get("function_call", {}).get("name", "") + 
+                                                    r.get("function_call", {}).get("arguments", "") + 
+                                                    (r.get("content") or "") for r in responses])
+                
+                # Skip if there's no actual change in the responses
+                if current_responses_state == previous_responses_state:
+                    logger.debug("No change in responses state, skipping iteration")
+                    continue
+                    
+                previous_responses_state = current_responses_state
+                
                 # 1) LLM wants to call a tool:
                 if responses[-1].get("function_call"):
                     fc = responses[-1]["function_call"]
                     tool_name = fc["name"]
                     current_tool = tool_name
                     
-                    # Only send a tool_call event if this is a new tool or the arguments have changed significantly
+                    # Current arguments
                     current_args = fc["arguments"]
-                    if tool_name not in seen_tools or len(current_args) - len(seen_tools[tool_name]) > 20:
-                        seen_tools[tool_name] = current_args
+                    
+                    # Create a unique identifier for this specific tool call
+                    tool_call_id = f"{tool_name}:{current_args}"
+                    
+                    # Only process if we haven't seen this exact tool call in this session
+                    if tool_call_id not in processed_tool_calls:
+                        processed_tool_calls.add(tool_call_id)
                         
-                        # wrap it in your <tool_call> tag for history
-                        tag = f"<tool_call>{json.dumps(fc)}</tool_call>"
-                        # messages.append({"role": "assistant", "content": tag})
+                        logger.info(f"New tool call: {tool_name}")
                         
-                        # Send tool_call event 
-                        print(f"Sending tool_call event: {tool_name}")
+                        # Send tool_call event immediately for UI feedback
                         await ws.send_json({
                             "event": "tool_call",
                             "name": tool_name,
@@ -569,12 +597,42 @@ async def ws_endpoint(ws: WebSocket):
 
                 # 3) Normal assistant text (e.g. after the function call is done):
                 elif responses[-1].get("role") == "assistant" and responses[-1].get("content"):
-                    # we'll buffer it until after the loop to synthesize TTS
-                    last_assistant_content = responses[-1]["content"]
-                    # messages.append(response)
+                    new_content = responses[-1].get("content", "")
+                    # Only update if content has changed
+                    if new_content != last_assistant_content:
+                        last_assistant_content = new_content
 
+            # Safety check - make sure we have a non-empty response
+            if not responses:
+                print("Warning: Final responses list is empty")
+                await ws.send_json({
+                    "event": "error", 
+                    "text": "Sorry, I couldn't generate a response. Please try again."
+                })
+                return
+            
             messages.extend(responses)
+            
             # SYNTHESIZE RESPONSE
+            # Check if we have any content to synthesize
+            if not last_assistant_content or last_assistant_content.strip() == "":
+                print("Warning: Empty response from assistant")
+                # Send a fallback response if the LLM returned an empty response
+                fallback_response = "I've looked up that information, but I need to think about how to summarize it. Could you ask me a more specific question about what you'd like to know?"
+                await ws.send_json({"event": "text_response", "text": fallback_response})
+                
+                if TTS_ENGINE == "coqui":
+                    for audio in synthesize_stream_xtts(fallback_response, input_language):
+                        await ws.send_bytes(audio)
+                elif TTS_ENGINE == "kokoro":
+                    for audio in synthesize_stream_kokoro(fallback_response):
+                        await ws.send_bytes(audio)
+                else:
+                    await ws.send_bytes(synthesize(fallback_response, input_language))
+                
+                print("Sent fallback audio and text response to client.")
+                return
+            
             # remove any <think> tags
             reply = last_assistant_content.replace("<think>", "").replace("</think>", "")
             # determine language

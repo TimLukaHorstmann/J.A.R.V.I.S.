@@ -156,7 +156,7 @@ let audioInitialized = false;
 document.addEventListener('click', () => {
   if (!audioInitialized) {
     // Create and play a silent audio element to unlock audio
-    const silentAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6urq6v////////////////////////////////8AAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAZtAAAAAAAAASDoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==");
+    const silentAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6v////////////////////////////////8AAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAZtAAAAAAAAASDoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==");
     silentAudio.play().then(() => {
       audioInitialized = true;
       console.log("Audio playback initialized");
@@ -393,11 +393,13 @@ function createToolCallElement(toolData, collapsed = true) {
     iconClass = "bi-google";
   } else if (toolName.toLowerCase().includes("brave")) {
     iconClass = "bi-search";
+  } else if (toolName.toLowerCase().includes("weather")) {
+    iconClass = "bi-cloud-sun";
   }
   
   // Create icon element
   const iconDiv = document.createElement("div");
-  iconDiv.className = "tool-icon";
+  iconDiv.className = "tool-icon processing";
   iconDiv.innerHTML = `<i class="bi ${iconClass}"></i>`;
   
   // Create tool name element
@@ -430,10 +432,29 @@ function createToolCallElement(toolData, collapsed = true) {
     toggleCollapse();
   });
   
+  // Action buttons container
+  const actionBtns = document.createElement("div");
+  actionBtns.className = "tool-action-buttons";
+  
+  // Retry button - initially hidden
+  const retryBtn = document.createElement("button");
+  retryBtn.className = "tool-retry-btn";
+  retryBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i>';
+  retryBtn.title = "Retry tool call";
+  retryBtn.style.display = "none"; // Hide initially
+  retryBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // Prevent triggering header click
+    // Will implement retry functionality later
+    retryToolCall(toolName, args);
+  });
+  
+  actionBtns.appendChild(retryBtn);
+  
   // Assemble header
   headerDiv.appendChild(iconDiv);
   headerDiv.appendChild(nameDiv);
   headerDiv.appendChild(statusDiv);
+  headerDiv.appendChild(actionBtns);
   toolCallDiv.appendChild(headerDiv);
   toolCallDiv.appendChild(toggleBtn);
   
@@ -464,11 +485,35 @@ function createToolCallElement(toolData, collapsed = true) {
   // Ensure the code block uses pre to preserve formatting and prevent truncation
   codeDiv.className = "tool-code";
   codeDiv.textContent = formattedArgs; // textContent ensures proper escaping
-  contentDiv.appendChild(codeDiv);
+  
+  // Add copy button for code
+  const copyCodeBtn = document.createElement("button");
+  copyCodeBtn.className = "tool-copy-btn";
+  copyCodeBtn.innerHTML = '<i class="bi bi-clipboard"></i>';
+  copyCodeBtn.title = "Copy to clipboard";
+  copyCodeBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(formattedArgs).then(() => {
+      copyCodeBtn.innerHTML = '<i class="bi bi-clipboard-check"></i>';
+      setTimeout(() => {
+        copyCodeBtn.innerHTML = '<i class="bi bi-clipboard"></i>';
+      }, 2000);
+    });
+  });
+  
+  const codeContainer = document.createElement("div");
+  codeContainer.className = "tool-code-container";
+  codeContainer.appendChild(codeDiv);
+  codeContainer.appendChild(copyCodeBtn);
+  contentDiv.appendChild(codeContainer);
   toolCallDiv.appendChild(contentDiv);
   
   // Store tool data for future reference
   toolCallDiv.dataset.toolName = toolName;
+  if (typeof args === 'object') {
+    toolCallDiv.dataset.toolArgs = JSON.stringify(args);
+  } else {
+    toolCallDiv.dataset.toolArgs = args;
+  }
   
   return toolCallDiv;
 }
@@ -514,47 +559,51 @@ ws.onmessage = ev => {
         showTypingIndicator();
         // Reset audio state for new response
         isReceivingAudioResponse = true;
-        
-        // REMOVED: Don't clear previous tool messages anymore
-        // Let each message have its own tool calls
         break;
         
-        case "text_response":
-          indicator.textContent = "Connected";
+      case "text_response":
+        indicator.textContent = "Connected";
+        
+        // Always remove typing indicator when receiving a text response
+        const responseTypingIndicator = document.querySelector('.typing-indicator');
+        if (responseTypingIndicator) {
+          responseTypingIndicator.remove();
+        }
+        
+        // Handle empty responses from the LLM
+        if (!msg.text || msg.text.trim() === '') {
+          console.warn("Received empty text response");
+          // If we already have tool calls displayed, we'll just let those stay visible
+          return;
+        }
+        
+        // Check if there's a thinking message we can update instead of creating a new one
+        const thinkingMsg = document.querySelector('.message.jarvis.assistant-thinking');
+        if (thinkingMsg) {
+          // Convert the thinking message into a regular message with the response
+          thinkingMsg.classList.remove('assistant-thinking');
           
-          // Always remove typing indicator when receiving a text response
-          const responseTypingIndicator = document.querySelector('.typing-indicator');
-          if (responseTypingIndicator) {
-            responseTypingIndicator.remove();
-          }
+          // Get the content container (excluding any tool calls)
+          const contentContainer = thinkingMsg.querySelector('.message-content');
           
-          // Check if there's a thinking message we can update instead of creating a new one
-          const thinkingMsg = document.querySelector('.message.jarvis.assistant-thinking');
-          if (thinkingMsg) {
-            // Convert the thinking message into a regular message with the response
-            thinkingMsg.classList.remove('assistant-thinking');
-            
-            // Get the content container (excluding any tool calls)
-            const contentContainer = thinkingMsg.querySelector('.message-content');
-            
-            // Create a response div with markdown rendering
-            const responseDiv = document.createElement('div');
-            responseDiv.className = 'assistant-response';
-            responseDiv.innerHTML = marked.parse(msg.text);
-            
-            // Add response after the tools container
-            contentContainer.appendChild(responseDiv);
-          } else {
-            // No thinking message found, create a new message
-            appendMessage("jarvis", msg.text);
-          }
+          // Create a response div with markdown rendering
+          const responseDiv = document.createElement('div');
+          responseDiv.className = 'assistant-response';
+          responseDiv.innerHTML = marked.parse(msg.text);
           
-          // Signal end of audio response
-          isReceivingAudioResponse = false;
-          
-          // Scroll to bottom
-          conversation.scrollTop = conversation.scrollHeight;
-          break;
+          // Add response after the tools container
+          contentContainer.appendChild(responseDiv);
+        } else {
+          // No thinking message found, create a new message
+          appendMessage("jarvis", msg.text);
+        }
+        
+        // Signal end of audio response
+        isReceivingAudioResponse = false;
+        
+        // Scroll to bottom
+        conversation.scrollTop = conversation.scrollHeight;
+        break;
 
       case "tool_call":
         console.log("⚙️ Tool call received:", msg.name);
@@ -564,16 +613,29 @@ ws.onmessage = ev => {
           typingIndicator.remove();
         }
         
-        // Handle tool calls with the appropriate UI
+        // Handle tool calls with the appropriate UI - without any delay
         handleToolCall(msg.name, msg.arguments);
         break;
         
       case "tool_result":
-        console.log("🔧 Tool result received:", msg.tool);
+        console.log("🔧 Tool result received for:", msg.tool);
         if (msg.tool && msg.result) {
-          // Find the matching tool call element and add result
+          // Mark the tool as complete
           appendToolResult(msg.tool, msg.result);
         }
+        break;
+        
+      case "tool_error":
+        console.log("🔧 Tool error received for:", msg.tool);
+        if (msg.tool) {
+          // Mark the tool call as failed
+          markToolCallFailed(msg.tool, msg.error || "Tool call failed");
+        }
+        break;
+      
+      case "retry_success":
+        console.log("🔄 Tool retry succeeded for:", msg.tool);
+        // The regular tool_result handler will update the UI
         break;
         
       case "transcription":
@@ -583,6 +645,37 @@ ws.onmessage = ev => {
 
       case "transcription_debug":
         console.log("Transcription debug:", msg.text);
+        break;
+        
+      case "error":
+        console.error("Error from server:", msg.text);
+        // Show an error message in the UI
+        indicator.textContent = "Error";
+        indicator.style.backgroundColor = "#FF4A6E";
+        
+        // Create an error message in the conversation
+        const errorDiv = document.createElement("div");
+        errorDiv.className = "message jarvis error-message";
+        errorDiv.innerHTML = `
+          <div class="message-content">
+            <div class="error-container">
+              <i class="bi bi-exclamation-triangle-fill"></i>
+              <span>${msg.text || "An error occurred"}</span>
+            </div>
+          </div>
+        `;
+        
+        // Add avatar
+        const avatar = document.createElement("div");
+        avatar.className = "message-avatar";
+        avatar.innerHTML = '<i class="bi bi-robot"></i>';
+        errorDiv.appendChild(avatar);
+        
+        // Add to conversation
+        conversation.appendChild(errorDiv);
+        
+        // Scroll to bottom
+        conversation.scrollTop = conversation.scrollHeight;
         break;
         
       default:
@@ -608,59 +701,105 @@ function appendToolResult(toolName, result) {
   // Find any assistant message that has this tool
   const toolCall = document.querySelector(`.tool-call[data-tool-name="${toolName}"]`);
   
-  if (toolCall) {
-    // Check if it already has a result
-    if (!toolCall.querySelector('.tool-result')) {
-      // Update status indicator
-      const statusDiv = toolCall.querySelector('.tool-status');
-      if (statusDiv) {
-        statusDiv.className = "tool-status completed";
-        statusDiv.textContent = "Completed";
-      }
-      
-      // Stop the pulsing animation on the icon
-      const icon = toolCall.querySelector('.tool-icon');
-      if (icon) {
+  if (!toolCall) {
+    console.warn(`Tool call for ${toolName} not found in DOM`);
+    return;
+  }
+  
+  // Check if the tool is already in a completed state to avoid duplicate updates
+  if (toolStates[toolName] === TOOL_STATE.COMPLETED) {
+    console.log(`Tool ${toolName} already in completed state, skipping update`);
+    return;
+  }
+  
+  // Update the tool state to completed
+  toolStates[toolName] = TOOL_STATE.COMPLETED;
+  
+  // Check if it already has a result (extra safeguard)
+  if (!toolCall.querySelector('.tool-result')) {
+    // Update status indicator
+    const statusDiv = toolCall.querySelector('.tool-status');
+    if (statusDiv) {
+      statusDiv.className = "tool-status completed";
+      statusDiv.textContent = "Completed";
+    }
+    
+    // Stop the animation on the icon
+    const icon = toolCall.querySelector('.tool-icon');
+    if (icon) {
+      icon.classList.remove('processing');
+      icon.classList.add('pulsing');
+      setTimeout(() => {
+        icon.classList.remove('pulsing');
         icon.style.animation = 'none';
+      }, 2000);
+    }
+    
+    // Add the result to the content div
+    const contentDiv = toolCall.querySelector('.tool-content');
+    if (contentDiv) {
+      // Create a container for the result and copy button
+      const resultContainer = document.createElement("div");
+      resultContainer.className = "tool-result-container";
+      
+      // Use PRE element for better code formatting
+      const resultDiv = document.createElement("pre");
+      resultDiv.className = 'tool-result';
+      
+      // Format the result if it's JSON
+      let formattedResult;
+      try {
+        // Try to parse as JSON
+        const jsonResult = JSON.parse(result);
+        formattedResult = JSON.stringify(jsonResult, null, 2);
+      } catch (e) {
+        formattedResult = result;
       }
       
-      // Add the result to the content div
-      const contentDiv = toolCall.querySelector('.tool-content');
-      if (contentDiv) {
-        // Use PRE element for better code formatting
-        const resultDiv = document.createElement("pre");
-        resultDiv.className = 'tool-result';
-        
-        // Format the result if it's JSON
-        let formattedResult;
-        try {
-          // Try to parse as JSON
-          const jsonResult = JSON.parse(result);
-          formattedResult = JSON.stringify(jsonResult, null, 2);
-        } catch (e) {
-          formattedResult = result;
-        }
-        
-        resultDiv.textContent = formattedResult; // Use textContent to ensure proper escaping
-        contentDiv.appendChild(resultDiv);
-        
-        // Keep tool result collapsed by default
-        // toolCall.classList.remove('collapsed');
-        // const toggleBtn = toolCall.querySelector('.tool-toggle');
-        // if (toggleBtn) {
-        //   toggleBtn.innerHTML = '<i class="bi bi-chevron-up"></i>';
-        // }
-        
-        // Scroll to ensure visibility
-        conversation.scrollTop = conversation.scrollHeight;
+      resultDiv.textContent = formattedResult; // Use textContent to ensure proper escaping
+      
+      // Add copy button for result
+      const copyResultBtn = document.createElement("button");
+      copyResultBtn.className = "tool-copy-btn";
+      copyResultBtn.innerHTML = '<i class="bi bi-clipboard"></i>';
+      copyResultBtn.title = "Copy to clipboard";
+      copyResultBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(formattedResult).then(() => {
+          copyResultBtn.innerHTML = '<i class="bi bi-clipboard-check"></i>';
+          setTimeout(() => {
+            copyResultBtn.innerHTML = '<i class="bi bi-clipboard"></i>';
+          }, 2000);
+        });
+      });
+      
+      resultContainer.appendChild(resultDiv);
+      resultContainer.appendChild(copyResultBtn);
+      contentDiv.appendChild(resultContainer);
+      
+      // Hide retry button as we succeeded
+      const retryBtn = toolCall.querySelector('.tool-retry-btn');
+      if (retryBtn) {
+        retryBtn.style.display = 'none';
       }
+      
+      // Scroll to ensure visibility
+      conversation.scrollTop = conversation.scrollHeight;
     }
   }
 }
 
+// Create a mapping to track which tools are in which state
+const toolStates = {};
+
+// Tool call state constants
+const TOOL_STATE = {
+  PROCESSING: 'processing',
+  COMPLETED: 'completed',
+  ERROR: 'error'
+};
 
 function handleToolCall(toolName, argumentsStr) {
-  console.log("Handling tool call:", toolName, argumentsStr);
+  console.log("⚙️ Tool call received:", toolName);
   
   // Find existing assistant message or create one as a container
   let messageDiv = document.querySelector('.message.jarvis.assistant-thinking');
@@ -711,23 +850,40 @@ function handleToolCall(toolName, argumentsStr) {
     arguments: args
   };
   
+  // Update the tool state
+  toolStates[toolName] = TOOL_STATE.PROCESSING;
+  
   // Get or update the tool call visualization
   const toolsContainer = messageDiv.querySelector('.tools-container');
+  
+  // Make sure the tools container is visible
+  toolsContainer.style.display = 'block';
   
   // Check if this tool already exists
   let existingToolCall = messageDiv.querySelector(`.tool-call[data-tool-name="${toolName}"]`);
   
   if (existingToolCall) {
-    // Update existing tool call
+    // Update existing tool call - keep its collapsed state
     const wasCollapsed = existingToolCall.classList.contains('collapsed');
     existingToolCall.remove();
     
     // Create new tool call with the same collapsed state
     const newToolCall = createToolCallElement(toolData, wasCollapsed);
     toolsContainer.appendChild(newToolCall);
+    
+    // Force browser to acknowledge the new element
+    setTimeout(() => {
+      newToolCall.style.opacity = '1';
+    }, 10);
   } else {
     // Create new tool call (always collapsed initially)
-    toolsContainer.appendChild(createToolCallElement(toolData, true));
+    const newToolCall = createToolCallElement(toolData, true);
+    toolsContainer.appendChild(newToolCall);
+    
+    // Force browser to acknowledge the new element
+    setTimeout(() => {
+      newToolCall.style.opacity = '1';
+    }, 10);
   }
   
   // If this is a new message, add it to the conversation
@@ -958,3 +1114,111 @@ function stopRecording() {
 
 // Initialize textarea height
 textInput.setAttribute('style', 'height:' + (textInput.scrollHeight) + 'px;overflow-y:hidden;');
+
+// New function to mark a tool call as failed
+function markToolCallFailed(toolName, errorMessage) {
+  // Find the tool call element
+  const toolCall = document.querySelector(`.tool-call[data-tool-name="${toolName}"]`);
+  
+  if (!toolCall) {
+    console.warn(`Tool call for ${toolName} not found in DOM`);
+    return;
+  }
+  
+  // Check if the tool is already in an error state to avoid duplicate updates
+  if (toolStates[toolName] === TOOL_STATE.ERROR) {
+    console.log(`Tool ${toolName} already in error state, skipping update`);
+    return;
+  }
+  
+  // Update tool state to error
+  toolStates[toolName] = TOOL_STATE.ERROR;
+  
+  // Update status indicator
+  const statusDiv = toolCall.querySelector('.tool-status');
+  if (statusDiv) {
+    statusDiv.className = "tool-status error";
+    statusDiv.textContent = "Failed";
+  }
+  
+  // Show retry button
+  const retryBtn = toolCall.querySelector('.tool-retry-btn');
+  if (retryBtn) {
+    retryBtn.style.display = 'inline-flex';
+  }
+  
+  // Add error message to content
+  const contentDiv = toolCall.querySelector('.tool-content');
+  if (contentDiv && !contentDiv.querySelector('.tool-error')) {
+    const errorDiv = document.createElement("div");
+    errorDiv.className = "tool-error";
+    errorDiv.textContent = errorMessage || "Tool call failed";
+    contentDiv.appendChild(errorDiv);
+    
+    // Auto-expand to show error
+    toolCall.classList.remove('collapsed');
+    const toggleBtn = toolCall.querySelector('.tool-toggle');
+    if (toggleBtn) {
+      toggleBtn.innerHTML = '<i class="bi bi-chevron-up"></i>';
+    }
+  }
+  
+  // Update icon to show error state
+  const icon = toolCall.querySelector('.tool-icon');
+  if (icon) {
+    icon.classList.remove('processing');
+    icon.style.animation = 'none';
+    icon.style.backgroundColor = 'rgba(244, 63, 94, 0.15)';
+    icon.style.color = 'var(--danger-color)';
+  }
+}
+
+// Function to retry a failed tool call
+function retryToolCall(toolName, args) {
+  console.log(`Retrying tool call: ${toolName}`);
+  
+  // Find the tool call element
+  const toolCall = document.querySelector(`.tool-call[data-tool-name="${toolName}"]`);
+  
+  if (!toolCall) {
+    console.warn(`Tool call for ${toolName} not found in DOM`);
+    return;
+  }
+  
+  // Update tool state back to processing
+  toolStates[toolName] = TOOL_STATE.PROCESSING;
+  
+  // Reset status indicator
+  const statusDiv = toolCall.querySelector('.tool-status');
+  if (statusDiv) {
+    statusDiv.className = "tool-status pending";
+    statusDiv.textContent = "Retrying...";
+  }
+  
+  // Hide retry button while in progress
+  const retryBtn = toolCall.querySelector('.tool-retry-btn');
+  if (retryBtn) {
+    retryBtn.style.display = 'none';
+  }
+  
+  // Remove any error message
+  const errorDiv = toolCall.querySelector('.tool-error');
+  if (errorDiv) {
+    errorDiv.remove();
+  }
+  
+  // Reset icon to processing state
+  const icon = toolCall.querySelector('.tool-icon');
+  if (icon) {
+    icon.classList.add('processing');
+    icon.style.backgroundColor = 'rgba(99, 102, 241, 0.15)';
+    icon.style.color = 'var(--primary-color)';
+  }
+  
+  // Send the retry request to the server
+  ws.send(JSON.stringify({
+    type: "retry_tool",
+    tool_name: toolName,
+    arguments: typeof args === 'string' ? args : JSON.stringify(args)
+  }));
+}

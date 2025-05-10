@@ -3,21 +3,35 @@
 # Exit on any error
 set -e
 
-# abort if API keys  not set as env vars already
+# Look for .env file in parent directory and load it if environment variables aren't set
+ENV_FILE="../.env"
+if [ -f "$ENV_FILE" ]; then
+    # Only set variables from .env if they're not already set in the environment
+    if [ -z "$GOOGLE_MAPS_API_KEY" ] || [ -z "$BRAVE_API_KEY" ] || [ -z "$ACCUWEATHER_API_KEY" ]; then
+        echo "Loading API keys from $ENV_FILE file"
+        # Using grep and cut to extract values from the .env file
+        [ -z "$GOOGLE_MAPS_API_KEY" ] && export GOOGLE_MAPS_API_KEY=$(grep GOOGLE_MAPS_API_KEY "$ENV_FILE" | cut -d= -f2)
+        [ -z "$BRAVE_API_KEY" ] && export BRAVE_API_KEY=$(grep BRAVE_API_KEY "$ENV_FILE" | cut -d= -f2)
+        [ -z "$ACCUWEATHER_API_KEY" ] && export ACCUWEATHER_API_KEY=$(grep ACCUWEATHER_API_KEY "$ENV_FILE" | cut -d= -f2)
+    fi
+fi
+
+# Check if required API keys are set after attempting to load from .env
 if [ -z "$GOOGLE_MAPS_API_KEY" ]; then
-    echo "GOOGLE_MAPS_API_KEY is not set. Please set it in your environment."
+    echo "GOOGLE_MAPS_API_KEY is not set. Please set it in your environment or in the .env file."
     exit 1
 fi
 
 if [ -z "$BRAVE_API_KEY" ]; then
-  echo "BRAVE_API_KEY is not set. Please set it in your environment."
+  echo "BRAVE_API_KEY is not set. Please set it in your environment or in the .env file."
   exit 1
 fi
 
 if [ -z "$ACCUWEATHER_API_KEY" ]; then
-    echo "ACCUWEATHER_API_KEY is not set. Please set it in your environment."
+    echo "ACCUWEATHER_API_KEY is not set. Please set it in your environment or in the .env file."
     exit 1
 fi
+
 
 
 mkdir -p logs
@@ -48,7 +62,7 @@ npx -y supergateway --stdio "npx -y @modelcontextprotocol/server-brave-search" \
 PIDS+=($!)
 
 # Start Fetch MCP server
-npx -y supergateway --stdio "uvx mcp-server-fetch" \
+npx -y supergateway --stdio "npx -y @kazuph/mcp-fetch" \
   --port 4003 \
   --baseUrl http://127.0.0.1:4003 \
   --ssePath /messages \

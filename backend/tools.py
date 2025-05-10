@@ -199,9 +199,12 @@ def search_web(query: str, num_results: int = 3) -> str:
         A summary of extracted content with links to sources.
     """
     # Get search results from DuckDuckGo
-    results = DDGS().text(query, max_results=num_results + 2)  # Get extra in case some fail
-    if not results:
-        return "No results found for this query."
+    try:
+        results = DDGS().text(query, max_results=num_results + 3)  # Get extra in case some fail
+        if not results:
+            return "No results found for this query."
+    except Exception as e:
+        return f"Error performing search: {str(e)}"
     
     content_items = []
     processed = 0
@@ -217,17 +220,42 @@ def search_web(query: str, num_results: int = 3) -> str:
             continue  # Skip non-HTML content
             
         try:
-            # Fetch the page using trafilatura
-            downloaded = trafilatura.fetch_url(url)
+            # Fetch the page using trafilatura with timeout
+            downloaded = None
+            try:
+                downloaded = trafilatura.fetch_url(url, timeout=10)
+            except Exception as e:
+                print(f"Error fetching URL {url}: {str(e)}")
+                continue
+                
             if downloaded:
                 # Extract the main content
-                extracted = trafilatura.extract(downloaded, include_comments=False, include_tables=False)
-                if extracted:
-                    # Take the first 1000 characters
-                    text = extracted[:1000] + "..." if len(extracted) > 1000 else extracted
-                    content_items.append(f"From {title}:\n{text}\nSource: {url}\n")
-                    processed += 1
+                try:
+                    extracted = trafilatura.extract(downloaded, include_comments=False, 
+                                                  include_tables=False, favor_precision=True)
+                    
+                    # Explicitly close any resources to prevent ClosedResourceError
+                    if hasattr(downloaded, 'close') and callable(downloaded.close):
+                        try:
+                            downloaded.close()
+                        except:
+                            pass
+
+                    if extracted:
+                        # Take the first 1000 characters
+                        text = extracted[:1000] + "..." if len(extracted) > 1000 else extracted
+                        content_items.append(f"From {title}:\n{text}\nSource: {url}\n")
+                        processed += 1
+                except Exception as e:
+                    print(f"Error extracting content from {url}: {str(e)}")
+                    # Ensure resources are cleaned up even on extraction error
+                    if hasattr(downloaded, 'close') and callable(downloaded.close):
+                        try:
+                            downloaded.close()
+                        except:
+                            pass
         except Exception as e:
+            print(f"General error processing result {url}: {str(e)}")
             continue  # Skip this result and try the next one
     
     if not content_items:
