@@ -1,7 +1,16 @@
-# Jarvis AI Assistant
+# J.A.R.V.I.S. AI Assistant
 
 <p align="center">
-  <img src="frontend/assets/images/jarvis_logo.png" alt="Jarvis Logo" width="200"/>
+  <img src="frontend/assets/images/jarvis_logo2.png" alt="Jarvis Logo" width="100%"/>
+</p>
+
+<!-- Badges -->
+<p align="center">
+  <img src="https://img.shields.io/badge/contributions-welcome-brightgreen" alt="Contributions Welcome"/>
+  <!-- <img src="https://img.shields.io/badge/build-passing-brightgreen" alt="Build Status"/> -->
+  <img src="https://img.shields.io/badge/license-Non--Commercial-blue" alt="License"/>
+  <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python Version"/>
+  <img src="https://img.shields.io/badge/docker-ready-blue" alt="Docker"/>
 </p>
 
 A voice-enabled advanced AI assistant inspired by the Marvel Cinematic Universe's J.A.R.V.I.S. (Just a Rather Very Intelligent System). This project combines local state-of-the-art large language models (LLMs), speech-to-text (ASR), text-to-speech (TTS), and external tool integration via the Model Context Protocol (MCP) to create a conversational AI experience.
@@ -113,6 +122,25 @@ A [`Dockerfile`](backend/Dockerfile) and [`docker-compose.yml`](docker-compose.y
 
 *   [`backend/start_mcp_servers.sh`](backend/start_mcp_servers.sh): Starts the necessary MCP tool servers in the background.
 *   [`backend/stop_mcp_servers.sh`](backend/stop_mcp_servers.sh): Stops the MCP servers started by the start script.
+
+## Future Plans & Features
+
+We are actively working to improve and extend Jarvis. Planned features and enhancements include:
+
+1. **Online Hosting:**  
+   Making Jarvis available to the public via online hosting. We are currently experimenting with deployment on Hugging Face Spaces, but there are still some setup issues to resolve (work in progress).
+
+2. **Extended Language Support:**  
+   Expanding language capabilities, especially for German. This depends on the availability and quality of TTS systems for additional languages.
+
+3. **More MCP Servers:**  
+   Integrating additional Model Context Protocol (MCP) servers to provide more tools and external integrations.
+
+4. **UI Improvements:**  
+   Enhancing the user interface for a more intuitive and engaging experience.
+
+**Contributions are welcome!**  
+If you have ideas, suggestions, or would like to contribute code, tools, or documentation, please open an issue or submit a pull request.
 
 ## License
 
