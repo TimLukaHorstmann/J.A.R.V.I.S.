@@ -3,6 +3,7 @@ import os
 # set QWEN_AGENT_MAX_LLM_CALL_PER_RUN to 10 via env var
 # os.environ["QWEN_AGENT_MAX_LLM_CALL_PER_RUN"] = "10"
 
+from urllib import request
 import uuid
 import datetime
 import io
@@ -13,6 +14,7 @@ import yaml
 import ffmpeg
 import asyncio
 import re
+import jsonify
 
 from fastapi import FastAPI, WebSocket, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse, StreamingResponse
@@ -39,7 +41,7 @@ from qwen_agent.agents import Assistant
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
 
-# ─── Your custom tool registration ────────────────────────────────────────────
+# ─── Example of custoom tool use (https://github.com/QwenLM/Qwen-Agent) ────────────────────────────────────────────
 from qwen_agent.tools.base import BaseTool, register_tool
 
 @register_tool("magic_function")
@@ -57,7 +59,6 @@ class MagicFunction(BaseTool):
     ]
 
     def call(self, params: str, **kwargs) -> str:
-        # `params` is a JSON string; we return JSON too.
         import json, json5
         parsed = json5.loads(params)
         val = parsed["input"]
@@ -67,7 +68,8 @@ class MagicFunction(BaseTool):
 config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
 with open(config_path, "r") as f:
     config = yaml.safe_load(f)
-# ─── Logging setup ─────────────────────────────────────────────────────────────
+
+# ─── Logging setup ──────────────────────────────────────────────────────────
 logging.basicConfig(
     level=getattr(logging, config["application"]["log_level"]),
     format=config["application"]["log_format"],
@@ -121,7 +123,7 @@ async def chat_completions(req: dict):
     if req.get("model") != "llama-cpp":
         raise HTTPException(status_code=404, detail="Model not found")
 
-    # Forward the entire payload to the llama-cpp-python server
+    # Here I just forward the request to an llm server (implement this to outsource computational needs an enable modularity)
     async with httpx.AsyncClient() as client:
         resp = await client.post(
             "http://localhost:8000/v1/chat/completions",
@@ -138,6 +140,10 @@ async def get_index():
 
 @app.get("/{filepath:path}")
 async def get_static(filepath: str):
+    # Handle Chrome DevTools request (just implemented to avoid warnings - not needed)
+    if filepath.startswith(".well-known/"):
+        return JSONResponse(content={}, status_code=200)
+        
     full_path = os.path.join(os.path.dirname(__file__), "../frontend", filepath)
     return FileResponse(full_path)
 
@@ -148,7 +154,7 @@ model_id = "openai/whisper-small"
 whisper_processor = WhisperProcessor.from_pretrained(model_id)
 whisper_model = WhisperForConditionalGeneration.from_pretrained(model_id).to(device)
 
-# Optional fallback SpeechBrain
+# Optional fallback SpeechBrain (tested earlier but quality not as good)
 # asr_en = EncoderDecoderASR.from_hparams(source="speechbrain/asr-crdnn-yesno", savedir="tmp")
 # asr_de = EncoderDecoderASR.from_hparams(source="speechbrain/asr-crdnn-commonvoice-de", savedir="tmp")
 
@@ -232,6 +238,7 @@ else:
         model_name=config["tts"]["fast"]["de_model"]
     )
     print("Fast TTS models loaded.")
+
 # ─── 7) Transcription & synthesis helpers ─────────────────────────────────────
 def transcribe(buffer: bytes, language: str = None, format_info: str = None) -> str:
     """
@@ -317,13 +324,14 @@ def transcribe(buffer: bytes, language: str = None, format_info: str = None) -> 
     ).input_features.to(device)
 
     whisper_task = "transcribe" # Default task
+
     # Generate token ids
     with torch.no_grad():
         # Prepare decoder inputs based on the provided language
         forced_decoder_ids = None
-        whisper_forced_language = language # Use the language passed to the function
+        whisper_forced_language = language
         
-        if whisper_forced_language or whisper_task: # Use the function's language variable
+        if whisper_forced_language or whisper_task:
             forced_decoder_ids_list = []
             
             if whisper_forced_language:
@@ -348,7 +356,7 @@ def transcribe(buffer: bytes, language: str = None, format_info: str = None) -> 
                 task_position = 2 if whisper_forced_language and forced_decoder_ids_list else 1
                 forced_decoder_ids_list.append((task_position, task_id))
             
-            # Set the forced decoder inputs if any were added
+            # Set forced decoder inputs if any were added
             forced_decoder_ids = forced_decoder_ids_list if forced_decoder_ids_list else None
         
         # Generate token ids
@@ -429,7 +437,7 @@ def synthesize_stream_kokoro(text: str):
         yield buf.getvalue()
 
 def determine_lang(reply: str) -> str:
-    # Simple heuristic based on German characters (uncommented)
+    # Simple heuristic based on German characters --> this should be improved in the future
     return "de" # if any(ch in reply.lower() for ch in ("ä","ö","ü","ß")) else "en"
 
 def strip_markdown(text: str) -> str:
@@ -709,6 +717,21 @@ async def ws_endpoint(ws: WebSocket):
 
     await ws.close()
 
+@app.route('/toggle-wake-word', methods=['POST'])
+def toggle_wake_word():
+    try:
+        data = request.get_json()
+        enabled = data.get('enabled', True)
+        
+        return JSONResponse({
+            'status': 'success',
+            'enabled': enabled
+        })
+    except Exception as e:
+        return JSONResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status_code=500)
 
 if __name__ == "__main__":
     import uvicorn

@@ -5,14 +5,15 @@ const sendText = document.getElementById("sendText");
 const micButton = document.getElementById("micButton");
 const conversation = document.getElementById("conversation");
 const languageSelector = document.getElementById("languageSelector");
+const wakeWordToggle = document.getElementById("wakeWordToggle");
 
 let recorder = null;
 let mediaStream = null;
 let isRecording = false;
 let selectedLanguage = "en"; // Default language
+let wakeWordEnabled = true; // Global wake word state
 
 
-// Replace the existing wake word initialization 
 let wakeWordRecognition = null;
 
 function initWakeWordDetection() {
@@ -27,6 +28,7 @@ function initWakeWordDetection() {
   if (wakeWordRecognition) {
     try {
       wakeWordRecognition.stop();
+      console.log("Stopped existing wake word recognition");
     } catch (e) {
       console.warn("Error stopping previous wake word detection:", e);
     }
@@ -38,12 +40,19 @@ function initWakeWordDetection() {
   wakeWordRecognition.lang = 'en-US';
   
   wakeWordRecognition.onresult = e => {
+    // Only process wake word if it's enabled
+    if (!wakeWordEnabled) {
+      console.log("Wake word detection is disabled, ignoring result");
+      return;
+    }
+    
     for (let i = e.resultIndex; i < e.results.length; i++) {
       if (e.results[i].isFinal) {
         const t = e.results[i][0].transcript.trim().toLowerCase();
         console.log("Wake word detection heard:", t);
         if (t.includes('hey jarvis')) {
-          // auto-trigger the mic when you say "Hey Jarvis"
+          console.log("Wake word detected! Starting recording...");
+          // auto-trigger the mic when users says "Hey Jarvis"
           if (!isRecording) startRecording();
         }
       }
@@ -51,31 +60,65 @@ function initWakeWordDetection() {
   };
   
   wakeWordRecognition.onend = () => {
-    console.log("Wake word detection ended, restarting...");
-    // Restart wake word detection if it ended unexpectedly
-    if (!isRecording) { // Don't restart if we're already recording
+    console.log("Wake word detection ended, current state:", { wakeWordEnabled, isRecording });
+    // Only restart if wake word is enabled and we're not recording
+    if (wakeWordEnabled && !isRecording) {
+      console.log("Restarting wake word detection...");
       setTimeout(() => {
         initWakeWordDetection();
       }, 100);
+    } else {
+      console.log("Not restarting wake word detection:", { wakeWordEnabled, isRecording });
     }
   };
   
   wakeWordRecognition.onerror = err => {
     console.error("Wake-word error:", err);
     // Don't restart on errors like "no-speech" to avoid excessive retries
-    if (err.error !== 'no-speech' && err.error !== 'aborted') {
+    if (err.error !== 'no-speech' && err.error !== 'aborted' && wakeWordEnabled) {
+      console.log("Restarting wake word detection after error...");
       setTimeout(() => {
         initWakeWordDetection();
       }, 1000);
     }
   };
   
-  wakeWordRecognition.start();
-  console.log("Wake word detection started");
+  // Only start if wake word is enabled
+  if (wakeWordEnabled) {
+    try {
+      wakeWordRecognition.start();
+      console.log("Wake word detection started successfully");
+    } catch (e) {
+      console.error("Failed to start wake word detection:", e);
+    }
+  } else {
+    console.log("Wake word detection not started (disabled)");
+  }
 }
 
-// Call this on page load
+// Function to toggle wake word detection
+function toggleWakeWordDetection(enabled) {
+  console.log("Toggling wake word detection:", enabled);
+  wakeWordEnabled = enabled;
+  
+  if (enabled) {
+    console.log("Enabling wake word detection...");
+    initWakeWordDetection();
+  } else if (wakeWordRecognition) {
+    console.log("Disabling wake word detection...");
+    try {
+      wakeWordRecognition.stop();
+      console.log("Wake word detection stopped successfully");
+    } catch (e) {
+      console.warn("Error stopping wake word detection:", e);
+    }
+  }
+}
+
 initWakeWordDetection();
+
+// Export toggle function for use in index.html
+window.toggleWakeWordDetection = toggleWakeWordDetection;
 
 // Audio Queue System
 class AudioQueue {
@@ -149,14 +192,13 @@ class AudioQueue {
   }
 }
 
-// Add this after creating the audioQueue
 let audioInitialized = false;
 
 // Initialize audio playback on first user interaction
 document.addEventListener('click', () => {
   if (!audioInitialized) {
     // Create and play a silent audio element to unlock audio
-    const silentAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6v////////////////////////////////8AAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAZtAAAAAAAAASDoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==");
+    const silentAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6v////////////////////////////////8AAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAZtAAAAAAAAASDoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==");
     silentAudio.play().then(() => {
       audioInitialized = true;
       console.log("Audio playback initialized");
@@ -179,7 +221,7 @@ let userLocation = {
 
 // Get user location if we don't have it or it's older than 24 hours
 function updateUserLocation() {
-  const ONE_DAY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+  const ONE_DAY = 24 * 60 * 60 * 1000; // in milliseconds
   const needsUpdate = !userLocation.lastUpdated || 
                      (Date.now() - parseInt(userLocation.lastUpdated)) > ONE_DAY;
   
@@ -218,7 +260,6 @@ function updateUserLocation() {
   }
 }
 
-// Call this when app starts
 updateUserLocation();
 
 // Initialize language from local storage if available
@@ -246,7 +287,6 @@ textInput.addEventListener('input', function() {
   }
 });
 
-// WS lifecycle with better status indicators
 ws.onopen = () => {
   console.log("WebSocket ▶ connected");
   indicator.textContent = "Connected";
@@ -267,7 +307,7 @@ ws.onclose = () => {
 
 ws.binaryType = "arraybuffer";
 
-// Modified appendMessage function to handle tool calls
+
 function appendMessage(sender, text) {
   // Remove typing indicator if present
   const typingIndicator = document.querySelector('.typing-indicator');
@@ -417,7 +457,7 @@ function createToolCallElement(toolData, collapsed = true) {
   toggleBtn.className = "tool-toggle";
   toggleBtn.innerHTML = collapsed ? '<i class="bi bi-chevron-down"></i>' : '<i class="bi bi-chevron-up"></i>';
   
-  // Add click handler to toggle visibility - fixed to work correctly
+  // Add click handler to toggle visibility
   const toggleCollapse = () => {
     toolCallDiv.classList.toggle("collapsed");
     toggleBtn.innerHTML = toolCallDiv.classList.contains("collapsed") 
@@ -613,7 +653,6 @@ ws.onmessage = ev => {
           typingIndicator.remove();
         }
         
-        // Handle tool calls with the appropriate UI - without any delay
         handleToolCall(msg.name, msg.arguments);
         break;
         
@@ -635,11 +674,9 @@ ws.onmessage = ev => {
       
       case "retry_success":
         console.log("🔄 Tool retry succeeded for:", msg.tool);
-        // The regular tool_result handler will update the UI
         break;
         
       case "transcription":
-        // when the server tells us "here's what I heard", show it as your bubble
         appendMessage("user", msg.text);
         break;
 
@@ -687,7 +724,6 @@ ws.onmessage = ev => {
     // Create a blob from the audio buffer
     const blob = new Blob([ev.data], { type: "audio/wav" });
     
-    // Add to our queue instead of immediately playing
     audioQueue.add(blob);
   } else {
     console.warn("Received unknown data type:", ev.data);
@@ -695,8 +731,122 @@ ws.onmessage = ev => {
 };
 
 
+let pendingToolCalls = new Map(); // Track pending tool calls
 
-// Function to append a tool result to its corresponding tool call
+function handleToolCall(toolName, argumentsStr) {
+  console.log("⚙️ Tool call received:", toolName);
+  
+  // Parse arguments if needed
+  let args;
+  try {
+    args = typeof argumentsStr === 'string' ? JSON.parse(argumentsStr) : argumentsStr;
+  } catch (e) {
+    console.warn("Could not parse tool arguments as JSON:", e);
+    return; // Skip invalid tool calls
+  }
+  
+  // Create a unique key for this tool call
+  const toolKey = `${toolName}-${JSON.stringify(args)}`;
+  
+  // If we already have this tool call pending, skip it
+  if (pendingToolCalls.has(toolKey)) {
+    console.log("Skipping duplicate tool call:", toolKey);
+    return;
+  }
+  
+  // Mark this tool call as pending
+  pendingToolCalls.set(toolKey, true);
+  
+  // Find existing assistant message or create one as a container
+  let messageDiv = document.querySelector('.message.jarvis.assistant-thinking');
+  let isNewMessage = false;
+  
+  if (!messageDiv) {
+    isNewMessage = true;
+    messageDiv = document.createElement("div");
+    messageDiv.className = "message jarvis assistant-thinking";
+    
+    // Create avatar
+    const avatar = document.createElement("div");
+    avatar.className = "message-avatar";
+    avatar.innerHTML = '<i class="bi bi-robot"></i>';
+    
+    // Create message content container
+    const contentContainer = document.createElement("div");
+    contentContainer.className = "message-content";
+    
+    // Create a tools container
+    const toolsContainer = document.createElement("div");
+    toolsContainer.className = "tools-container";
+    
+    // Add a header for the tools section
+    const toolsHeader = document.createElement("div");
+    toolsHeader.className = "tools-header";
+    toolsHeader.innerHTML = '<i class="bi bi-gear-fill"></i> Using tools to answer your question...';
+    toolsContainer.appendChild(toolsHeader);
+    
+    contentContainer.appendChild(toolsContainer);
+    messageDiv.appendChild(contentContainer);
+    messageDiv.appendChild(avatar);
+  }
+  
+  // Create tool call element
+  const toolData = {
+    name: toolName,
+    arguments: args
+  };
+  
+  // Update the tool state
+  toolStates[toolName] = TOOL_STATE.PROCESSING;
+  
+  // Get or update the tool call visualization
+  const toolsContainer = messageDiv.querySelector('.tools-container');
+  
+  // Make sure the tools container is visible
+  toolsContainer.style.display = 'block';
+  
+  // Check if this tool already exists
+  let existingToolCall = messageDiv.querySelector(`.tool-call[data-tool-name="${toolName}"]`);
+  
+  if (existingToolCall) {
+    // Update existing tool call - keep its collapsed state
+    const wasCollapsed = existingToolCall.classList.contains('collapsed');
+    existingToolCall.remove();
+    
+    // Create new tool call with the same collapsed state
+    const newToolCall = createToolCallElement(toolData, wasCollapsed);
+    toolsContainer.appendChild(newToolCall);
+    
+    // Force browser to acknowledge the new element
+    setTimeout(() => {
+      newToolCall.style.opacity = '1';
+    }, 10);
+  } else {
+    // Create new tool call (always collapsed initially)
+    const newToolCall = createToolCallElement(toolData, true);
+    toolsContainer.appendChild(newToolCall);
+    
+    // Force browser to acknowledge the new element
+    setTimeout(() => {
+      newToolCall.style.opacity = '1';
+    }, 10);
+  }
+  
+  // If this is a new message, add it to the conversation
+  if (isNewMessage) {
+    conversation.appendChild(messageDiv);
+  }
+  
+  // Scroll to bottom
+  conversation.scrollTop = conversation.scrollHeight;
+  
+  // Show typing indicator after tool call to indicate processing continues
+  // Only add a new typing indicator if the previous one was removed
+  if (!document.querySelector('.typing-indicator')) {
+    showTypingIndicator();
+  }
+}
+
 function appendToolResult(toolName, result) {
   // Find any assistant message that has this tool
   const toolCall = document.querySelector(`.tool-call[data-tool-name="${toolName}"]`);
@@ -714,6 +864,9 @@ function appendToolResult(toolName, result) {
   
   // Update the tool state to completed
   toolStates[toolName] = TOOL_STATE.COMPLETED;
+  
+  // Remove from pending tool calls
+  pendingToolCalls.delete(toolName);
   
   // Check if it already has a result (extra safeguard)
   if (!toolCall.querySelector('.tool-result')) {
@@ -797,110 +950,6 @@ const TOOL_STATE = {
   COMPLETED: 'completed',
   ERROR: 'error'
 };
-
-function handleToolCall(toolName, argumentsStr) {
-  console.log("⚙️ Tool call received:", toolName);
-  
-  // Find existing assistant message or create one as a container
-  let messageDiv = document.querySelector('.message.jarvis.assistant-thinking');
-  let isNewMessage = false;
-  
-  if (!messageDiv) {
-    isNewMessage = true;
-    messageDiv = document.createElement("div");
-    messageDiv.className = "message jarvis assistant-thinking";
-    
-    // Create avatar
-    const avatar = document.createElement("div");
-    avatar.className = "message-avatar";
-    avatar.innerHTML = '<i class="bi bi-robot"></i>';
-    
-    // Create message content container
-    const contentContainer = document.createElement("div");
-    contentContainer.className = "message-content";
-    
-    // Create a tools container
-    const toolsContainer = document.createElement("div");
-    toolsContainer.className = "tools-container";
-    
-    // Add a header for the tools section
-    const toolsHeader = document.createElement("div");
-    toolsHeader.className = "tools-header";
-    toolsHeader.innerHTML = '<i class="bi bi-gear-fill"></i> Using tools to answer your question...';
-    toolsContainer.appendChild(toolsHeader);
-    
-    contentContainer.appendChild(toolsContainer);
-    messageDiv.appendChild(contentContainer);
-    messageDiv.appendChild(avatar);
-  }
-  
-  // Parse arguments if needed
-  let args = argumentsStr;
-  if (typeof args === 'string') {
-    try {
-      args = JSON.parse(args);
-    } catch (e) {
-      console.warn("Could not parse tool arguments as JSON:", e);
-    }
-  }
-  
-  // Create tool call element
-  const toolData = {
-    name: toolName,
-    arguments: args
-  };
-  
-  // Update the tool state
-  toolStates[toolName] = TOOL_STATE.PROCESSING;
-  
-  // Get or update the tool call visualization
-  const toolsContainer = messageDiv.querySelector('.tools-container');
-  
-  // Make sure the tools container is visible
-  toolsContainer.style.display = 'block';
-  
-  // Check if this tool already exists
-  let existingToolCall = messageDiv.querySelector(`.tool-call[data-tool-name="${toolName}"]`);
-  
-  if (existingToolCall) {
-    // Update existing tool call - keep its collapsed state
-    const wasCollapsed = existingToolCall.classList.contains('collapsed');
-    existingToolCall.remove();
-    
-    // Create new tool call with the same collapsed state
-    const newToolCall = createToolCallElement(toolData, wasCollapsed);
-    toolsContainer.appendChild(newToolCall);
-    
-    // Force browser to acknowledge the new element
-    setTimeout(() => {
-      newToolCall.style.opacity = '1';
-    }, 10);
-  } else {
-    // Create new tool call (always collapsed initially)
-    const newToolCall = createToolCallElement(toolData, true);
-    toolsContainer.appendChild(newToolCall);
-    
-    // Force browser to acknowledge the new element
-    setTimeout(() => {
-      newToolCall.style.opacity = '1';
-    }, 10);
-  }
-  
-  // If this is a new message, add it to the conversation
-  if (isNewMessage) {
-    conversation.appendChild(messageDiv);
-  }
-  
-  // Scroll to bottom
-  conversation.scrollTop = conversation.scrollHeight;
-  
-  // Show typing indicator after tool call to indicate processing continues
-  // Only add a new typing indicator if the previous one was removed
-  if (!document.querySelector('.typing-indicator')) {
-    showTypingIndicator();
-  }
-}
-
 
 // Add showTypingIndicator function if it doesn't exist
 function showTypingIndicator() {
@@ -987,7 +1036,6 @@ function startRecording() {
     .then(stream => {
       mediaStream = stream;
       
-      // Modern approach using AnalyserNode instead of ScriptProcessor
       const audioContext = new AudioContext();
       const analyser = audioContext.createAnalyser();
       const microphone = audioContext.createMediaStreamSource(stream);
@@ -1018,7 +1066,6 @@ function startRecording() {
         }
       }, 100);
       
-      // Rest of your recorder setup code
       let mimeType = 'audio/webm';
       
       if (MediaRecorder.isTypeSupported('audio/wav')) {
@@ -1030,7 +1077,6 @@ function startRecording() {
       console.log(`Using MIME type: ${mimeType} for recording`);
       recorder = new MediaRecorder(stream, { mimeType: mimeType });
       
-      // Existing chunk collection code...
       const audioChunks = [];
       
       recorder.ondataavailable = e => {
@@ -1039,10 +1085,8 @@ function startRecording() {
         }
       };
       
-      // Existing onstop handler...
       recorder.onstop = () => {
         clearInterval(silenceDetectionInterval);
-        // Rest of your existing onstop code...
         if (audioChunks.length === 0) {
           console.error("No audio data collected");
           return;
