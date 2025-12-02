@@ -11,6 +11,11 @@ tts:
     lang_code: "a"  # 'a' => American English
     voice: "am_liam"
     sample_rate: 24000
+  chatterbox:
+    model_name: "ChatterboxMultilingualTTS" # or ChatterboxTTS
+    device: "cpu" # or cuda/mps if supported
+    language: "en" # Default language
+    audio_prompt_path: "voice_samples/jarvis_sample.wav" # Path to the voice sample
 
 # ASR (Speech Recognition) Configuration
 asr:

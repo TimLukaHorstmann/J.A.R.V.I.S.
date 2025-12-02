@@ -29,6 +29,9 @@ dependencies = [
     "llama-cpp-python[server]",
     "pip",
     "mcp",
+    "torch==2.6.0",
+    "torchaudio==2.6.0",
+    "chatterbox-tts",
 ]
 
 [build-system]

@@ -193,12 +193,50 @@ function renderSessionList(sessions) {
     sessions.forEach(session => {
         const div = document.createElement('div');
         div.className = `chat-item ${session.id === currentSessionId ? 'active' : ''}`;
-        div.textContent = session.title || "New Conversation";
-        div.onclick = () => loadSession(session.id);
         
-        // Optional: Add delete button
+        const titleSpan = document.createElement('span');
+        titleSpan.textContent = session.title || "New Conversation";
+        titleSpan.style.flex = "1";
+        titleSpan.style.overflow = "hidden";
+        titleSpan.style.textOverflow = "ellipsis";
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = "delete-btn";
+        deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+        deleteBtn.title = "Delete Chat";
+        deleteBtn.onclick = (e) => deleteSession(session.id, e);
+
+        div.appendChild(titleSpan);
+        div.appendChild(deleteBtn);
+        
+        div.onclick = (e) => {
+            // Only load if not clicking delete
+            if (!e.target.closest('.delete-btn')) {
+                loadSession(session.id);
+            }
+        };
+        
         chatList.appendChild(div);
     });
+}
+
+async function deleteSession(sessionId, event) {
+    if (event) event.stopPropagation();
+    
+    if (!confirm("Are you sure you want to delete this chat?")) return;
+
+    try {
+        await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' });
+        
+        // If we deleted the current session, create a new one
+        if (sessionId === currentSessionId) {
+            createNewSession();
+        } else {
+            loadSessions();
+        }
+    } catch (e) {
+        console.error("Failed to delete session:", e);
+    }
 }
 
 function loadSession(sessionId) {
