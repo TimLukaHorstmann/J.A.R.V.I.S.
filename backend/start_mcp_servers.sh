@@ -27,10 +27,11 @@ if [ -z "$BRAVE_API_KEY" ]; then
   exit 1
 fi
 
-if [ -z "$ACCUWEATHER_API_KEY" ]; then
-    echo "ACCUWEATHER_API_KEY is not set. Please set it in your environment or in the .env file."
-    exit 1
-fi
+# AccuWeather key check removed as we switched to Open-Meteo (no key required)
+# if [ -z "$ACCUWEATHER_API_KEY" ]; then
+#     echo "ACCUWEATHER_API_KEY is not set. Please set it in your environment or in the .env file."
+#     exit 1
+# fi
 
 
 
@@ -71,14 +72,14 @@ npx -y supergateway --stdio "npx -y @kazuph/mcp-fetch" \
   > logs/fetch.log 2>&1 &
 PIDS+=($!)
 
-# Weather MCP
-npx -y supergateway --stdio "npx -y @timlukahorstmann/mcp-weather" \
+# Weather MCP (Open-Meteo via Python)
+# Using supergateway to expose the stdio python server as SSE
+npx -y supergateway --stdio "uv run python weather_server.py" \
   --port 4004 \
   --baseUrl http://127.0.0.1:4004 \
   --ssePath /messages \
   --messagePath /message \
   --cors "*" \
-  --env ACCUWEATHER_API_KEY="$ACCUWEATHER_API_KEY" \
   > logs/weather.log 2>&1 &
 PIDS+=($!)
 

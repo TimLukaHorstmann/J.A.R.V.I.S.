@@ -294,3 +294,32 @@ textarea {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--text-secondary);
 }
+
+/* Thoughts and Tool Calls */
+.message.thought .content {
+    color: var(--text-secondary);
+    font-style: italic;
+    font-size: 0.9rem;
+    border-left: 2px solid var(--text-secondary);
+    padding-left: 1rem;
+}
+
+.message.tool-call .content {
+    font-family: var(--font-mono);
+    color: var(--accent-color);
+    background-color: rgba(0, 210, 211, 0.1);
+    padding: 0.8rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+}
+
+.message.tool-result .content {
+    font-family: var(--font-mono);
+    color: var(--success-color);
+    background-color: rgba(29, 209, 161, 0.1);
+    padding: 0.8rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+}

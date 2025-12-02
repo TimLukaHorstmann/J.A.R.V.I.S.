@@ -92,25 +92,41 @@ async def websocket_endpoint(websocket: WebSocket):
                 logger.info(f"User: {user_text}")
                 
                 # 2. Think & Act (Agent)
-                response_text = await agent.process_message(user_text, chat_history)
-                logger.info(f"Jarvis: {response_text}")
+                full_response_text = ""
                 
-                # Clean response (remove <think> blocks)
-                cleaned_response = re.sub(r'<think>.*?</think>', '', response_text, flags=re.DOTALL).strip()
+                async for event in agent.process_message(user_text, chat_history):
+                    if event["type"] == "thought":
+                        chunk = event.get("chunk", event.get("content"))
+                        # logger.info(f"Thinking chunk: {chunk}") # Too verbose
+                        await websocket.send_json({"type": "thought", "chunk": chunk})
+                        
+                    elif event["type"] == "response":
+                        chunk = event.get("chunk", event.get("content"))
+                        full_response_text += chunk
+                        await websocket.send_json({"type": "text", "chunk": chunk})
+                        
+                    elif event["type"] == "tool_call":
+                        logger.info(f"Calling tool: {event['tool']} with {event['args']}")
+                        await websocket.send_json(event)
+                        
+                    elif event["type"] == "tool_result":
+                        logger.info(f"Tool result: {event['tool']} -> {event['content'][:100]}...")
+                        await websocket.send_json(event)
+                
+                logger.info(f"Jarvis: {full_response_text}")
                 
                 # Update history
-                chat_history.append(user_text)
-                chat_history.append(cleaned_response)
+                if full_response_text:
+                    chat_history.append(user_text)
+                    chat_history.append(full_response_text)
 
                 # 3. Speak (TTS)
-                # Send text response first
-                await websocket.send_json({"type": "text", "data": cleaned_response})
-                
-                # Synthesize and send audio
-                audio_out = audio_service.synthesize(cleaned_response)
-                if audio_out:
-                    # Send as binary
-                    await websocket.send_bytes(audio_out)
+                # Synthesize and send audio for the full response
+                if full_response_text:
+                    audio_out = audio_service.synthesize(full_response_text)
+                    if audio_out:
+                        # Send as binary
+                        await websocket.send_bytes(audio_out)
 
     except WebSocketDisconnect:
         logger.info("Client disconnected")

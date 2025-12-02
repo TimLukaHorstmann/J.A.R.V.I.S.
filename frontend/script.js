@@ -42,7 +42,28 @@ ws.onmessage = async (event) => {
         if (data.type === "transcription") {
             addMessage(data.text, "user");
         } else if (data.type === "text") {
-            addMessage(data.data, "jarvis");
+            // Handle both streaming chunks and full content
+            const content = data.chunk || data.content || data.data || "";
+            if (data.chunk) {
+                appendToMessage(content, "jarvis");
+            } else if (content) {
+                addMessage(content, "jarvis");
+            }
+        } else if (data.type === "thought") {
+            const content = data.chunk || data.content || "";
+            if (data.chunk) {
+                appendToMessage(content, "thought");
+            } else if (content) {
+                addMessage(content, "thought");
+            }
+        } else if (data.type === "tool_call") {
+            const args = data.args ? JSON.stringify(data.args, null, 2) : "{}";
+            const toolInfo = `🛠️ Calling ${data.tool}...\nArgs: ${args}`;
+            addMessage(toolInfo, "tool-call");
+        } else if (data.type === "tool_result") {
+            const content = data.content || "";
+            const resultInfo = `✅ Result from ${data.tool}:\n${content}`;
+            addMessage(resultInfo, "tool-result");
         } else if (data.type === "error") {
             console.error("Server error:", data.message);
             addMessage(`Error: ${data.message}`, "system");
@@ -53,23 +74,61 @@ ws.onmessage = async (event) => {
 };
 
 // UI Functions
+let currentMessageDiv = null;
+let currentMessageType = null;
+
 function updateStatus(status) {
     statusDot.className = `status-dot ${status}`;
     statusText.textContent = status.charAt(0).toUpperCase() + status.slice(1);
 }
 
+function appendToMessage(text, type) {
+    if (!text) return; // Don't append empty text
+
+    if (!currentMessageDiv || currentMessageType !== type) {
+        addMessage("", type); // Create new empty bubble
+        currentMessageDiv = conversation.lastElementChild;
+        currentMessageType = type;
+    }
+    
+    const contentDiv = currentMessageDiv.querySelector(".content");
+    
+    if (type === "jarvis") {
+        // We need to store raw text to re-render markdown
+        if (!contentDiv.dataset.raw) contentDiv.dataset.raw = "";
+        contentDiv.dataset.raw += text;
+        if (window.marked) {
+            contentDiv.innerHTML = marked.parse(contentDiv.dataset.raw);
+        } else {
+            contentDiv.textContent = contentDiv.dataset.raw;
+        }
+    } else {
+        contentDiv.textContent += text;
+    }
+    
+    conversation.scrollTop = conversation.scrollHeight;
+}
+
 function addMessage(text, sender) {
+    // Reset current streaming message if we add a new full message
+    currentMessageDiv = null;
+    currentMessageType = null;
+
     const messageDiv = document.createElement("div");
     messageDiv.className = `message ${sender}`;
     
     const contentDiv = document.createElement("div");
     contentDiv.className = "content";
     
+    // Ensure text is not undefined/null
+    const safeText = text || "";
+
     // Render Markdown for Jarvis messages
     if (sender === "jarvis" && window.marked) {
-        contentDiv.innerHTML = marked.parse(text);
+        contentDiv.dataset.raw = safeText;
+        contentDiv.innerHTML = marked.parse(safeText);
     } else {
-        contentDiv.textContent = text;
+        contentDiv.textContent = safeText;
     }
     
     messageDiv.appendChild(contentDiv);

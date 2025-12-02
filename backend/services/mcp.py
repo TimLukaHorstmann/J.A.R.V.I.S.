@@ -21,13 +21,22 @@ class MCPService:
             logger.warning("No MCP servers configured.")
             return
 
-        try:
-            self.client = MultiServerMCPClient(server_map)
-            # Updated for langchain-mcp-adapters 0.1.0+
-            self.tools = await self.client.get_tools()
-            logger.info(f"Loaded {len(self.tools)} tools from MCP servers.")
-        except Exception as e:
-            logger.error(f"Failed to initialize MCP client: {e}")
+        import asyncio
+        
+        # Retry logic for connection
+        for attempt in range(5):
+            try:
+                self.client = MultiServerMCPClient(server_map)
+                # Updated for langchain-mcp-adapters 0.1.0+
+                self.tools = await self.client.get_tools()
+                logger.info(f"Loaded {len(self.tools)} tools from MCP servers.")
+                return
+            except Exception as e:
+                logger.warning(f"Attempt {attempt+1}/5: Failed to initialize MCP client: {e}")
+                if attempt < 4:
+                    await asyncio.sleep(2) # Wait 2 seconds before retrying
+        
+        logger.error("Could not initialize MCP client after 5 attempts.")
 
     async def cleanup(self):
         # MultiServerMCPClient 0.1.0+ manages its own lifecycle or doesn't support context manager

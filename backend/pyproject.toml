@@ -28,6 +28,7 @@ dependencies = [
     "trafilatura",
     "llama-cpp-python[server]",
     "pip",
+    "mcp",
 ]
 
 [build-system]
