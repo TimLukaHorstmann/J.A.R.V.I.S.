@@ -55,15 +55,12 @@ A voice-enabled advanced AI assistant inspired by the Marvel Cinematic Universe'
     ```
 
 2.  **Backend Setup:**
-    *   **Install Dependencies:** Navigate to the `backend` directory and install Python requirements. Note the specific build flags for `llama-cpp-python` if using GPU acceleration (like Metal on macOS).
+    *   **Install Dependencies:** This project uses `uv` for package management.
         ```bash
-        cd backend
-        pip install -r requirements.txt
-        # Ensure CMake and a C++ compiler are installed
-        # For Metal GPU on macOS:
-        # CMAKE_ARGS="-DLLAMA_METAL=ON" FORCE_CMAKE=1 pip install llama-cpp-python
-        # Or install from requirements.txt which includes this line
+        make setup
         ```
+        *(This will automatically create a virtual environment and install dependencies, including `llama-cpp-python` with Metal support on macOS.)*
+
     *   **Download LLM Model:** The required model (specified in [`backend/config.yaml`](backend/config.yaml)) will be downloaded automatically by `huggingface_hub` on first run if not present in the specified `local_dir`.
     *   **Configure API Keys:** Set the following environment variables for the MCP tools:
         *   `GOOGLE_MAPS_API_KEY`
@@ -77,13 +74,9 @@ A voice-enabled advanced AI assistant inspired by the Marvel Cinematic Universe'
         *(This will run the servers in the background and store their PIDs in `.mcp_pids`)*
     *   **Start Backend Server:**
         ```bash
-        # Make sure llama-cpp-python server is running if you are proxying
-        # python -m llama_cpp.server --model <path_to_your_gguf_model> --n_gpu_layers -1 ...
-
-        # Start the main Jarvis backend
-        uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+        make run
         ```
-        *(Adjust host/port as needed. `--reload` is useful for development.)*
+        *(This starts the backend server on http://localhost:8000)*
 
 3.  **Frontend Access:**
     *   Open your web browser and navigate to `http://localhost:8000` (or the host/port you configured).

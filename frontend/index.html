@@ -1,59 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Jarvis AI Assistant</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Jarvis AI Assistant - Your personal voice-enabled AI helper">
-  <meta name="theme-color" content="#6366F1">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="style.css" />
-  <link rel="icon" type="image/png" href="assets/images/jarvis_logo.png">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>J.A.R.V.I.S.</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Preconnect to Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Marked for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
-  <div class="app-container">
-    <div class="chat-container">
-      <div class="chat-header">
-        <div class="app-branding">
-          <div class="app-icon">
-            <img src="assets/images/jarvis_logo.png" alt="JARVIS Logo" class="jarvis-logo">
-          </div>
-          <h1>Jarvis</h1>
-        </div>
-        <div class="controls">
-          <select id="languageSelector" class="language-selector">
-            <option value="en">English</option>
-            <option value="de">Deutsch</option>
-          </select>
-          <button id="wakeWordToggle" class="wake-word-toggle" title="Toggle wake word detection">
-            <i class="bi bi-mic-fill"></i>
-          </button>
-          <div id="indicator" class="status-indicator">Connecting...</div>
-        </div>
-      </div>
-      
-      <div id="conversation" class="conversation-container"></div>
-      
-      <div class="input-container">
-        <textarea id="textInput" placeholder="Ask me anything..." rows="1"></textarea>
-        <div class="button-group">
-          <button id="sendText" class="send-button" aria-label="Send message">
-            <i class="bi bi-send-fill"></i>
-          </button>
-          <button id="micButton" class="mic-button" aria-label="Record voice">
-            <i class="bi bi-mic-fill"></i>
-          </button>
-        </div>
-      </div>
-      
-      <div class="helper-text">
-        <span>Press <i class="bi bi-mic"></i> to talk, or type and press <i class="bi bi-send"></i></span>
-      </div>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <div class="logo-circle"></div>
+                <h1>J.A.R.V.I.S.</h1>
+            </div>
+            <div class="status-bar">
+                <div id="connection-status" class="status-dot disconnected"></div>
+                <span id="status-text">Disconnected</span>
+            </div>
+        </header>
+
+        <main class="chat-interface">
+            <div id="conversation" class="messages-area">
+                <div class="message system">
+                    <div class="content">System initialized. Ready for input.</div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="input-area">
+            <div class="controls">
+                <button id="wake-word-toggle" class="icon-btn active" title="Wake Word Detection">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                </button>
+                <select id="language-selector" class="lang-select">
+                    <option value="en">EN</option>
+                    <option value="de">DE</option>
+                </select>
+            </div>
+            
+            <div class="input-wrapper">
+                <textarea id="text-input" placeholder="Type a message..." rows="1"></textarea>
+                <button id="mic-button" class="mic-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                </button>
+                <button id="send-button" class="send-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </div>
+        </footer>
     </div>
-  </div>
-  <script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>

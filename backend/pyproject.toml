@@ -1,0 +1,42 @@
+[project]
+name = "jarvis-backend"
+version = "0.1.0"
+description = "Backend for JARVIS AI Assistant"
+readme = "../README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "PyYAML",
+    "ffmpeg-python",
+    "httpx",
+    "soundfile",
+    "numpy",
+    "huggingface_hub",
+    "kokoro>=0.3.4",
+    "faster-whisper",
+    "langgraph",
+    "langchain",
+    "langchain-openai",
+    "langchain-community",
+    "langchain-mcp-adapters",
+    "requests",
+    "duckduckgo-search",
+    "beautifulsoup4",
+    "forex-python",
+    "newsapi-python",
+    "trafilatura",
+    "llama-cpp-python[server]",
+    "pip",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+

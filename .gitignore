@@ -10,3 +10,5 @@ backend/node_modules/
 backend/__pycache__/
 .env
 .mcp_pids
+
+backend/.venv/
