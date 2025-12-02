@@ -12,3 +12,4 @@ backend/__pycache__/
 .mcp_pids
 
 backend/.venv/
+backend/jarvis.db

@@ -7,8 +7,13 @@ const conversation = document.getElementById("conversation");
 const textInput = document.getElementById("text-input");
 const sendButton = document.getElementById("send-button");
 const micButton = document.getElementById("mic-button");
+const stopButton = document.getElementById("stop-button");
 const wakeWordToggle = document.getElementById("wake-word-toggle");
 const languageSelector = document.getElementById("language-selector");
+const sidebar = document.getElementById("sidebar");
+const sidebarToggle = document.getElementById("sidebar-toggle");
+const chatList = document.getElementById("chat-list");
+const newChatBtn = document.getElementById("new-chat-btn");
 
 // State
 let isRecording = false;
@@ -16,11 +21,14 @@ let mediaRecorder = null;
 let audioChunks = [];
 let wakeWordEnabled = true;
 let wakeWordRecognition = null;
+let currentSessionId = null;
+let isGenerating = false;
 
 // WebSocket Events
 ws.onopen = () => {
     updateStatus("connected");
     console.log("WebSocket connected");
+    loadSessions(); // Load chat history list
 };
 
 ws.onclose = () => {
@@ -39,10 +47,22 @@ ws.onmessage = async (event) => {
     try {
         const data = JSON.parse(event.data);
         
-        if (data.type === "transcription") {
+        if (data.type === "session_init") {
+            currentSessionId = data.session_id;
+            // Clear conversation if it's a fresh session and we aren't loading history
+            if (!data.restored) {
+                conversation.innerHTML = '';
+                addMessage("System initialized. Ready for input.", "system");
+            }
+            loadSessions();
+        } else if (data.type === "history") {
+            renderHistory(data.messages);
+        } else if (data.type === "session_updated") {
+            loadSessions();
+        } else if (data.type === "transcription") {
             addMessage(data.text, "user");
+            setGenerating(true);
         } else if (data.type === "text") {
-            // Handle both streaming chunks and full content
             const content = data.chunk || data.content || data.data || "";
             if (data.chunk) {
                 appendToMessage(content, "jarvis");
@@ -64,9 +84,12 @@ ws.onmessage = async (event) => {
             const content = data.content || "";
             const resultInfo = `✅ Result from ${data.tool}:\n${content}`;
             addMessage(resultInfo, "tool-result");
+        } else if (data.type === "complete") {
+            setGenerating(false);
         } else if (data.type === "error") {
             console.error("Server error:", data.message);
             addMessage(`Error: ${data.message}`, "system");
+            setGenerating(false);
         }
     } catch (e) {
         console.error("Error parsing message:", e);
@@ -82,11 +105,23 @@ function updateStatus(status) {
     statusText.textContent = status.charAt(0).toUpperCase() + status.slice(1);
 }
 
+function setGenerating(generating) {
+    isGenerating = generating;
+    if (generating) {
+        stopButton.classList.remove("hidden");
+        micButton.classList.add("hidden");
+    } else {
+        stopButton.classList.add("hidden");
+        micButton.classList.remove("hidden");
+        currentMessageDiv = null; // Reset stream buffer
+    }
+}
+
 function appendToMessage(text, type) {
-    if (!text) return; // Don't append empty text
+    if (!text) return;
 
     if (!currentMessageDiv || currentMessageType !== type) {
-        addMessage("", type); // Create new empty bubble
+        addMessage("", type);
         currentMessageDiv = conversation.lastElementChild;
         currentMessageType = type;
     }
@@ -94,7 +129,6 @@ function appendToMessage(text, type) {
     const contentDiv = currentMessageDiv.querySelector(".content");
     
     if (type === "jarvis") {
-        // We need to store raw text to re-render markdown
         if (!contentDiv.dataset.raw) contentDiv.dataset.raw = "";
         contentDiv.dataset.raw += text;
         if (window.marked) {
@@ -110,7 +144,6 @@ function appendToMessage(text, type) {
 }
 
 function addMessage(text, sender) {
-    // Reset current streaming message if we add a new full message
     currentMessageDiv = null;
     currentMessageType = null;
 
@@ -120,11 +153,9 @@ function addMessage(text, sender) {
     const contentDiv = document.createElement("div");
     contentDiv.className = "content";
     
-    // Ensure text is not undefined/null
     const safeText = text || "";
 
-    // Render Markdown for Jarvis messages
-    if (sender === "jarvis" && window.marked) {
+    if ((sender === "jarvis" || sender === "assistant") && window.marked) {
         contentDiv.dataset.raw = safeText;
         contentDiv.innerHTML = marked.parse(safeText);
     } else {
@@ -133,9 +164,63 @@ function addMessage(text, sender) {
     
     messageDiv.appendChild(contentDiv);
     conversation.appendChild(messageDiv);
-    
-    // Scroll to bottom
     conversation.scrollTop = conversation.scrollHeight;
+}
+
+function renderHistory(messages) {
+    conversation.innerHTML = '';
+    messages.forEach(msg => {
+        // Map backend roles to frontend classes
+        let sender = msg.role;
+        if (sender === "assistant") sender = "jarvis";
+        addMessage(msg.content, sender);
+    });
+}
+
+// Session Management
+async function loadSessions() {
+    try {
+        const response = await fetch('/api/sessions');
+        const sessions = await response.json();
+        renderSessionList(sessions);
+    } catch (e) {
+        console.error("Failed to load sessions:", e);
+    }
+}
+
+function renderSessionList(sessions) {
+    chatList.innerHTML = '';
+    sessions.forEach(session => {
+        const div = document.createElement('div');
+        div.className = `chat-item ${session.id === currentSessionId ? 'active' : ''}`;
+        div.textContent = session.title || "New Conversation";
+        div.onclick = () => loadSession(session.id);
+        
+        // Optional: Add delete button
+        chatList.appendChild(div);
+    });
+}
+
+function loadSession(sessionId) {
+    if (sessionId === currentSessionId) return;
+    
+    ws.send(JSON.stringify({
+        type: "load_session",
+        session_id: sessionId
+    }));
+    currentSessionId = sessionId;
+    loadSessions(); // Refresh active state
+    
+    // Close sidebar on mobile
+    if (window.innerWidth < 768) {
+        sidebar.classList.remove("open");
+    }
+}
+
+function createNewSession() {
+    ws.send(JSON.stringify({
+        type: "new_session"
+    }));
 }
 
 // Audio Functions
@@ -145,18 +230,13 @@ function playAudio(blob) {
     
     audio.onended = () => {
         URL.revokeObjectURL(audioUrl);
-        // Resume wake word detection if enabled
         if (wakeWordEnabled) {
             startWakeWordDetection();
         }
     };
     
-    // Stop wake word detection while playing audio to avoid self-triggering
     stopWakeWordDetection();
-    
-    audio.play().catch(e => {
-        console.error("Audio playback failed:", e);
-    });
+    audio.play().catch(e => console.error("Audio playback failed:", e));
 }
 
 // Recording Functions
@@ -172,18 +252,14 @@ async function startRecording() {
 
         mediaRecorder.onstop = () => {
             const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-            // Send audio blob directly
-            // Note: WebSocket.send() handles Blobs automatically
             ws.send(audioBlob);
-            
-            // Stop all tracks
             stream.getTracks().forEach(track => track.stop());
         };
 
         mediaRecorder.start();
         isRecording = true;
         micButton.classList.add("recording");
-        stopWakeWordDetection(); // Stop wake word while recording
+        stopWakeWordDetection();
         
     } catch (err) {
         console.error("Error accessing microphone:", err);
@@ -196,7 +272,6 @@ function stopRecording() {
         mediaRecorder.stop();
         isRecording = false;
         micButton.classList.remove("recording");
-        // Wake word will be restarted after response audio plays
     }
 }
 
@@ -228,7 +303,6 @@ function initWakeWordDetection() {
     };
 
     wakeWordRecognition.onerror = (event) => {
-        console.log("Wake word error:", event.error);
         if (event.error === 'not-allowed') {
             wakeWordEnabled = false;
             updateWakeWordUI();
@@ -237,11 +311,7 @@ function initWakeWordDetection() {
     
     wakeWordRecognition.onend = () => {
         if (wakeWordEnabled && !isRecording) {
-            try {
-                wakeWordRecognition.start();
-            } catch (e) {
-                // Ignore
-            }
+            try { wakeWordRecognition.start(); } catch (e) {}
         }
     };
 
@@ -252,21 +322,13 @@ function initWakeWordDetection() {
 
 function startWakeWordDetection() {
     if (wakeWordRecognition && wakeWordEnabled) {
-        try {
-            wakeWordRecognition.start();
-        } catch (e) {
-            // Already started
-        }
+        try { wakeWordRecognition.start(); } catch (e) {}
     }
 }
 
 function stopWakeWordDetection() {
     if (wakeWordRecognition) {
-        try {
-            wakeWordRecognition.stop();
-        } catch (e) {
-            // Ignore
-        }
+        try { wakeWordRecognition.stop(); } catch (e) {}
     }
 }
 
@@ -282,7 +344,6 @@ function updateWakeWordUI() {
 sendButton.addEventListener("click", () => {
     const text = textInput.value.trim();
     if (text) {
-        // Send JSON message
         ws.send(JSON.stringify({
             type: "text",
             text: text,
@@ -291,6 +352,7 @@ sendButton.addEventListener("click", () => {
         
         addMessage(text, "user");
         textInput.value = "";
+        setGenerating(true);
     }
 });
 
@@ -309,16 +371,23 @@ micButton.addEventListener("click", () => {
     }
 });
 
+stopButton.addEventListener("click", () => {
+    ws.send(JSON.stringify({ type: "stop" }));
+    setGenerating(false);
+});
+
 wakeWordToggle.addEventListener("click", () => {
     wakeWordEnabled = !wakeWordEnabled;
     updateWakeWordUI();
-    
-    if (wakeWordEnabled) {
-        startWakeWordDetection();
-    } else {
-        stopWakeWordDetection();
-    }
+    if (wakeWordEnabled) startWakeWordDetection();
+    else stopWakeWordDetection();
 });
+
+sidebarToggle.addEventListener("click", () => {
+    sidebar.classList.toggle("open");
+});
+
+newChatBtn.addEventListener("click", createNewSession);
 
 // Initialize
 initWakeWordDetection();

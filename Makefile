@@ -25,10 +25,13 @@ download-model:
 
 llm-server:
 	@echo "Starting Local LLM Server..."
-	@# Default to Llama-3.2-3B if not specified in config (handled by the python script args usually, but here we hardcode the command for now)
-	@# We read the model path from the config or use a default. 
-	@# For simplicity in the Makefile, we'll use a fixed path or environment variable.
-	cd backend && uv run python -m llama_cpp.server --model pretrained_models/llm/mlabonne_Qwen3-4B-abliterated-Q4_K_M.gguf --n_gpu_layers -1 --n_ctx 8192 --host 0.0.0.0 --port 8000
+	@cd backend && \
+	MODEL_INFO=$$(uv run python -c "import yaml; c=yaml.safe_load(open('config.yaml')); print(c['llm']['local_dir'] + '/' + c['llm']['filename'] + '|' + str(c['llm']['context_window']))") && \
+	MODEL_PATH=$$(echo "$$MODEL_INFO" | cut -d'|' -f1) && \
+	CTX_SIZE=$$(echo "$$MODEL_INFO" | cut -d'|' -f2) && \
+	echo "Model: $$MODEL_PATH" && \
+	echo "Context: $$CTX_SIZE" && \
+	uv run python -m llama_cpp.server --model "$$MODEL_PATH" --n_gpu_layers -1 --n_ctx $$CTX_SIZE --host 0.0.0.0 --port 8000
 
 run:
 	@echo "Starting MCP Servers..."

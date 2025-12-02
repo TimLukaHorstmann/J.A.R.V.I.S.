@@ -14,46 +14,69 @@
 </head>
 <body>
     <div class="container">
-        <header class="header">
-            <div class="logo">
-                <div class="logo-circle"></div>
-                <h1>J.A.R.V.I.S.</h1>
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h2>Chats</h2>
+                <button id="new-chat-btn" class="icon-btn" title="New Chat">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                </button>
             </div>
-            <div class="status-bar">
-                <div id="connection-status" class="status-dot disconnected"></div>
-                <span id="status-text">Disconnected</span>
+            <div id="chat-list" class="chat-list">
+                <!-- Chat items will be injected here -->
             </div>
-        </header>
+        </aside>
 
-        <main class="chat-interface">
-            <div id="conversation" class="messages-area">
-                <div class="message system">
-                    <div class="content">System initialized. Ready for input.</div>
+        <div class="main-content">
+            <header class="header">
+                <div class="header-left">
+                    <button id="sidebar-toggle" class="icon-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    </button>
+                    <div class="logo">
+                        <div class="logo-circle"></div>
+                        <h1>J.A.R.V.I.S.</h1>
+                    </div>
                 </div>
-            </div>
-        </main>
+                <div class="status-bar">
+                    <div id="connection-status" class="status-dot disconnected"></div>
+                    <span id="status-text">Disconnected</span>
+                </div>
+            </header>
 
-        <footer class="input-area">
-            <div class="controls">
-                <button id="wake-word-toggle" class="icon-btn active" title="Wake Word Detection">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-                </button>
-                <select id="language-selector" class="lang-select">
-                    <option value="en">EN</option>
-                    <option value="de">DE</option>
-                </select>
-            </div>
-            
-            <div class="input-wrapper">
-                <textarea id="text-input" placeholder="Type a message..." rows="1"></textarea>
-                <button id="mic-button" class="mic-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-                </button>
-                <button id="send-button" class="send-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                </button>
-            </div>
-        </footer>
+            <main class="chat-interface">
+                <div id="conversation" class="messages-area">
+                    <div class="message system">
+                        <div class="content">System initialized. Ready for input.</div>
+                    </div>
+                </div>
+            </main>
+
+            <footer class="input-area">
+                <div class="controls">
+                    <button id="wake-word-toggle" class="icon-btn active" title="Wake Word Detection">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                    </button>
+                    <select id="language-selector" class="lang-select">
+                        <option value="en">EN</option>
+                        <option value="de">DE</option>
+                    </select>
+                </div>
+                
+                <div class="input-wrapper">
+                    <textarea id="text-input" placeholder="Type a message..." rows="1"></textarea>
+                    <button id="stop-button" class="stop-btn hidden" title="Stop Generation">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" fill="currentColor"></rect></svg>
+                    </button>
+                    <button id="mic-button" class="mic-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                    </button>
+                    <button id="send-button" class="send-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                </div>
+            </footer>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>
