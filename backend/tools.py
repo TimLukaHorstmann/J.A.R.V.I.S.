@@ -12,7 +12,15 @@ import re
 from forex_python.converter import CurrencyRates
 from newsapi import NewsApiClient
 import trafilatura
+from langchain_core.tools import tool
+from services.spotify import SpotifyService
+from services.system import SystemService
 
+# Global service instances (initialized in get_local_tools)
+spotify_service = None
+system_service = None
+
+@tool
 def get_current_temperature(location: str = None, coordinates: dict = None) -> float:
     """
     Get the current temperature at a location using the free Open-Meteo APIs.
@@ -54,6 +62,7 @@ def get_current_temperature(location: str = None, coordinates: dict = None) -> f
         raise RuntimeError("No temperature in response.")
     return temp
 
+@tool
 def get_current_datetime() -> str:
     """
     Get the current local date and time of the server.
@@ -64,6 +73,7 @@ def get_current_datetime() -> str:
     now = datetime.datetime.now()
     return now.strftime("%A, %B %d, %Y at %I:%M %p")
 
+@tool
 def get_weather_forecast(location: str = None, date: str = None, coordinates: dict = None) -> str:
     """
     Get the weather forecast for a location on a specific date.
@@ -164,6 +174,7 @@ def get_weather_forecast(location: str = None, date: str = None, coordinates: di
     
     return f"Forecast for {location} on {date}: {weather_description}, max {max_t}°C, min {min_t}°C{precipitation_info}"
 
+@tool
 def get_time_in_location(location: str) -> str:
     """
     Get the current local time at a given location.
@@ -186,6 +197,7 @@ def get_time_in_location(location: str) -> str:
     now = datetime.datetime.now(ZoneInfo(tz_name))
     return now.strftime(f"%A, %B %d, %Y at %I:%M %p ({tz_name})")
 
+@tool
 def search_web(query: str, num_results: int = 3) -> str:
     """
     Search the internet for a query, extract main content from top results using trafilatura,
@@ -266,7 +278,7 @@ def search_web(query: str, num_results: int = 3) -> str:
     response += "\n---\n".join(content_items)
     return response
 
-
+@tool
 def get_wikipedia_summary(topic: str, sentences: int = 2) -> str:
     """
     Fetch a brief summary of a Wikipedia article.
@@ -289,6 +301,7 @@ def get_wikipedia_summary(topic: str, sentences: int = 2) -> str:
         snippet += "."
     return snippet
 
+@tool
 def currency_convert(amount: float, from_currency: str, to_currency: str) -> str:
     """
     Convert an amount from one currency to another using current exchange rates.
@@ -310,6 +323,7 @@ def currency_convert(amount: float, from_currency: str, to_currency: str) -> str
     except Exception as e:
         return f"Error converting currency: {str(e)}"
 
+@tool
 def calculate(expression: str) -> str:
     """
     Calculate the result of a mathematical expression.
@@ -341,6 +355,7 @@ def calculate(expression: str) -> str:
     except Exception as e:
         return f"Error calculating result: {str(e)}"
 
+@tool
 def get_news_headlines(topic: str, count: int = 5) -> str:
     """
     Get recent news headlines for a specific topic using DuckDuckGo News search.
@@ -373,6 +388,7 @@ def get_news_headlines(topic: str, count: int = 5) -> str:
     except Exception as e:
         return f"Error fetching news: {str(e)}"
 
+@tool
 def translate_text(text: str, target_language: str) -> str:
     """
     Translate text to the target language.
@@ -406,3 +422,94 @@ def translate_text(text: str, target_language: str) -> str:
             return f"Translation error: {result.get('error', 'Unknown error')}"
     except Exception as e:
         return f"Error translating text: {str(e)}"
+
+# --- Spotify Tools ---
+@tool
+def spotify_play(query: str = None) -> str:
+    """
+    Play music on Spotify.
+    
+    Args:
+        query: The song or artist to play (optional). If not provided, resumes playback.
+    """
+    if spotify_service:
+        return spotify_service.play_music(query)
+    return "Spotify service is not initialized."
+
+@tool
+def spotify_pause() -> str:
+    """Pause Spotify playback."""
+    if spotify_service:
+        return spotify_service.pause_music()
+    return "Spotify service is not initialized."
+
+@tool
+def spotify_next() -> str:
+    """Skip to the next track on Spotify."""
+    if spotify_service:
+        return spotify_service.next_track()
+    return "Spotify service is not initialized."
+
+# --- System Tools ---
+@tool
+def system_volume(level: int) -> str:
+    """
+    Set the system volume.
+    
+    Args:
+        level: Volume level from 0 to 100.
+    """
+    if system_service:
+        return system_service.set_volume(level)
+    return "System service is not initialized."
+
+@tool
+def system_battery() -> str:
+    """Get the current battery status."""
+    if system_service:
+        return system_service.get_battery_status()
+    return "System service is not initialized."
+
+def get_local_tools(config):
+    """
+    Initialize services and return a list of all local tools.
+    """
+    global spotify_service, system_service
+    
+    # Initialize services
+    spotify_service = SpotifyService(config)
+    system_service = SystemService()
+    
+    tools = []
+    tools_config = config.get("tools", {})
+    
+    # Default to True if not specified, for backward compatibility
+    if tools_config.get("weather", True):
+        tools.extend([get_current_temperature, get_weather_forecast, get_time_in_location])
+        
+    if tools_config.get("web_search", True):
+        tools.extend([search_web, get_current_datetime]) # Date/Time often useful with search
+        
+    if tools_config.get("wikipedia", True):
+        tools.append(get_wikipedia_summary)
+        
+    if tools_config.get("currency", True):
+        tools.append(currency_convert)
+        
+    if tools_config.get("calculator", True):
+        tools.append(calculate)
+        
+    if tools_config.get("news", True):
+        tools.append(get_news_headlines)
+        
+    if tools_config.get("translator", True):
+        tools.append(translate_text)
+        
+    if tools_config.get("system", True):
+        tools.extend([system_volume, system_battery])
+        
+    # Spotify is handled by its own config section but we can check here too
+    if tools_config.get("spotify", False):
+        tools.extend([spotify_play, spotify_pause, spotify_next])
+        
+    return tools

@@ -13,3 +13,6 @@ backend/__pycache__/
 
 backend/.venv/
 backend/jarvis.db
+backend/.cache
+
+backend/uv.lock

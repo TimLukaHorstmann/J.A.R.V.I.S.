@@ -1,62 +1,54 @@
-# Application Settings
 application:
-  name: "Jarvis"
-  log_level: "INFO"
-  log_format: "%(asctime)s %(levelname)s %(name)s ─ %(message)s"
-
-# TTS Engine Configuration
-tts:
-  engine: "kokoro"
-  kokoro:
-    lang_code: "a"  # 'a' => American English
-    voice: "am_liam"
-    sample_rate: 24000
-  chatterbox:
-    model_name: "ChatterboxMultilingualTTS" # or ChatterboxTTS
-    device: "cpu" # or cuda/mps if supported
-    language: "en" # Default language
-    audio_prompt_path: "voice_samples/jarvis_sample.wav" # Path to the voice sample
-
-# ASR (Speech Recognition) Configuration
+  log_format: "%(asctime)s %(levelname)s %(name)s \u2500 %(message)s"
+  log_level: INFO
+  name: Jarvis
 asr:
-  engine: "whisper"
+  engine: whisper
   whisper:
-    model_size: "small"
-    device: "cpu" # or "cuda", "mps"
-    compute_type: "int8" # "float16" for GPU
-
-# LLM (Language Model) Configuration
+    compute_type: int8
+    device: cpu
+    model_size: small
 llm:
-  base_url: "http://localhost:8000/v1"
-  model_alias: "gpt-3.5-turbo" # This is just an alias for the local model
-  
-  # Recommended Models for Mac (Apple Silicon):
-  # 1. Llama-3.2-3B-Instruct (Fast, Smart, Small) - BEST OVERALL
-  #    repo_id: "bartowski/Llama-3.2-3B-Instruct-GGUF"
-  #    filename: "Llama-3.2-3B-Instruct-Q4_K_M.gguf"
-  #
-  # 2. Qwen2.5-7B-Instruct (Smarter, Slower)
-  #    repo_id: "bartowski/Qwen2.5-7B-Instruct-GGUF"
-  #    filename: "Qwen2.5-7B-Instruct-Q4_K_M.gguf"
-  
-  # Current Selection:
-  repo_id: "prithivMLmods/Qwen3-4B-2507-abliterated-GGUF" #"bartowski/mlabonne_Qwen3-4B-abliterated-GGUF"
-  filename: "Qwen3-4B-Instruct-2507-abliterated-GGUF/Qwen3-4B-Instruct-2507-abliterated.Q4_K_M.gguf" # "mlabonne_Qwen3-4B-abliterated-Q4_K_M.gguf"
-  local_dir: "pretrained_models/llm"
-  context_window: 8192 # 8k is a good balance for speed/memory on local devices
-
-# MCP Configuration
+  base_url: http://localhost:8000/v1
+  context_window: 8192
+  filename: Qwen3-4B-Instruct-2507-abliterated-GGUF/Qwen3-4B-Instruct-2507-abliterated.Q4_K_M.gguf
+  local_dir: pretrained_models/llm
+  model_alias: gpt-3.5-turbo
+  repo_id: prithivMLmods/Qwen3-4B-2507-abliterated-GGUF
 mcp:
   servers:
-    google_maps: 
-      url: "http://127.0.0.1:4001/messages"
-      transport: "sse"
-    brave_search: 
-      url: "http://127.0.0.1:4002/messages"
-      transport: "sse"
-    mcp-fetch: 
-      url: "http://127.0.0.1:4003/messages"
-      transport: "sse"
-    weather: 
-      url: "http://127.0.0.1:4004/messages"
-      transport: "sse"
+    brave_search:
+      transport: sse
+      url: http://127.0.0.1:4002/messages
+    google_maps:
+      transport: sse
+      url: http://127.0.0.1:4001/messages
+    mcp-fetch:
+      transport: sse
+      url: http://127.0.0.1:4003/messages
+    weather:
+      transport: sse
+      url: http://127.0.0.1:4004/messages
+spotify:
+  redirect_uri: http://127.0.0.1:8888/callback
+tools:
+  calculator: true
+  currency: true
+  news: true
+  spotify: true
+  system: true
+  translator: true
+  weather: true
+  web_search: true
+  wikipedia: true
+tts:
+  chatterbox:
+    audio_prompt_path: voice_samples/jarvis_sample.wav
+    device: cpu
+    language: en
+    model_name: ChatterboxMultilingualTTS
+  engine: kokoro
+  kokoro:
+    lang_code: a
+    sample_rate: 24000
+    voice: am_liam

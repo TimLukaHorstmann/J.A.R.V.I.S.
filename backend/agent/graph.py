@@ -15,16 +15,24 @@ class AgentState(TypedDict):
     messages: Annotated[list[BaseMessage], add_messages]
 
 class JarvisAgent:
-    def __init__(self, llm_service, mcp_service):
+    def __init__(self, llm_service, mcp_service, local_tools=None):
         self.llm = llm_service.get_llm()
         self.tools = []
         
         # Load tools from MCP servers
-        # We'll implement mcp_service.get_tools() to return the list of tools
-        self.tools = mcp_service.get_tools()
+        mcp_tools = mcp_service.get_tools()
+        self.tools.extend(mcp_tools)
+        
+        # Add local tools
+        if local_tools:
+            self.tools.extend(local_tools)
         
         # Bind tools to LLM
-        self.model = self.llm.bind_tools(self.tools)
+        if self.tools:
+            self.model = self.llm.bind_tools(self.tools)
+        else:
+            self.model = self.llm
+
         
         # Define the graph
         workflow = StateGraph(AgentState)

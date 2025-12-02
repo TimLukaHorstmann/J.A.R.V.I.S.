@@ -4,6 +4,7 @@ import yaml
 import asyncio
 import json
 import re
+from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,6 +14,14 @@ from services.llm import LLMService
 from services.mcp import MCPService
 from agent.graph import JarvisAgent
 from database import DatabaseService
+from tools import get_local_tools
+
+# Load environment variables
+env_path = os.path.join(os.path.dirname(__file__), "../.env")
+if load_dotenv(env_path):
+    print(f"✅ Loaded environment variables from {env_path}")
+else:
+    print(f"⚠️  Warning: .env file not found at {env_path}")
 
 # Load configuration
 config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
@@ -48,12 +57,42 @@ agent = None
 async def startup_event():
     global agent
     await mcp_service.initialize()
-    agent = JarvisAgent(llm_service, mcp_service)
+    local_tools = get_local_tools(config)
+    agent = JarvisAgent(llm_service, mcp_service, local_tools)
     logger.info("✅ JARVIS 2.0 Backend Ready")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     await mcp_service.cleanup()
+
+# ─── Settings API ─────────────────────────────────────────────────────────────
+def save_config():
+    with open(config_path, "w") as f:
+        yaml.dump(config, f)
+
+@app.get("/api/settings")
+async def get_settings():
+    return config
+
+@app.post("/api/settings")
+async def update_settings(new_settings: dict):
+    global config, agent
+    
+    # Update specific sections
+    if "spotify" in new_settings:
+        config["spotify"] = new_settings["spotify"]
+        
+    if "tools" in new_settings:
+        config["tools"] = new_settings["tools"]
+    
+    # Save to file
+    save_config()
+    
+    # Re-initialize local tools to pick up changes (e.g. Spotify enabled/disabled)
+    local_tools = get_local_tools(config)
+    agent = JarvisAgent(llm_service, mcp_service, local_tools)
+    
+    return {"status": "updated", "config": config}
 
 # ─── REST API for Sessions ────────────────────────────────────────────────────
 @app.get("/api/sessions")

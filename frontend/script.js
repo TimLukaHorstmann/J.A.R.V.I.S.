@@ -429,3 +429,101 @@ newChatBtn.addEventListener("click", createNewSession);
 
 // Initialize
 initWakeWordDetection();
+
+// Settings Modal Logic
+const settingsBtn = document.getElementById("settings-btn");
+const settingsModal = document.getElementById("settings-modal");
+const closeSettingsBtn = document.getElementById("close-settings");
+const saveSettingsBtn = document.getElementById("save-settings");
+const toolsList = document.getElementById("tools-list");
+
+if (settingsBtn) {
+    settingsBtn.addEventListener("click", async () => {
+        settingsModal.style.display = "block";
+        await loadSettings();
+    });
+}
+
+if (closeSettingsBtn) {
+    closeSettingsBtn.addEventListener("click", () => {
+        settingsModal.style.display = "none";
+    });
+}
+
+window.addEventListener("click", (event) => {
+    if (event.target === settingsModal) {
+        settingsModal.style.display = "none";
+    }
+});
+
+if (saveSettingsBtn) {
+    saveSettingsBtn.addEventListener("click", async () => {
+        await saveSettings();
+        settingsModal.style.display = "none";
+    });
+}
+
+async function loadSettings() {
+    try {
+        const response = await fetch("/api/settings");
+        const config = await response.json();
+        
+        if (config.tools) {
+            renderTools(config.tools);
+        }
+    } catch (error) {
+        console.error("Error loading settings:", error);
+    }
+}
+
+async function saveSettings() {
+    const toolsConfig = {};
+    const toolInputs = toolsList.querySelectorAll("input[type='checkbox']");
+    toolInputs.forEach(input => {
+        const toolName = input.id.replace("tool-", "");
+        toolsConfig[toolName] = input.checked;
+    });
+
+    const newSettings = {
+        tools: toolsConfig
+    };
+    
+    try {
+        const response = await fetch("/api/settings", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(newSettings)
+        });
+        
+        const result = await response.json();
+        console.log("Settings saved:", result);
+    } catch (error) {
+        console.error("Error saving settings:", error);
+    }
+}
+
+function renderTools(toolsConfig) {
+    toolsList.innerHTML = "";
+    // Sort keys to keep list stable
+    const sortedKeys = Object.keys(toolsConfig).sort();
+    
+    for (const toolName of sortedKeys) {
+        const enabled = toolsConfig[toolName];
+        const div = document.createElement("div");
+        div.className = "setting-item";
+        div.innerHTML = `
+            <label class="switch">
+                <input type="checkbox" id="tool-${toolName}" ${enabled ? "checked" : ""}>
+                <span class="slider round"></span>
+            </label>
+            <span>${formatToolName(toolName)}</span>
+        `;
+        toolsList.appendChild(div);
+    }
+}
+
+function formatToolName(name) {
+    return name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+}
