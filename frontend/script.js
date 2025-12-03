@@ -1,4 +1,6 @@
-const ws = new WebSocket(`ws://${location.host}/ws`);
+let ws;
+let reconnectInterval = 1000;
+const maxReconnectInterval = 30000;
 
 // State
 let isRecording = false;
@@ -18,19 +20,48 @@ let analyser = null;
 let microphone = null;
 let javascriptNode = null;
 
-// WebSocket Events
-ws.onopen = () => {
-    updateStatus("connected");
-    console.log("WebSocket connected");
-    loadSessions(); // Load chat history list
-};
+function connectWebSocket() {
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${location.host}/ws`;
+    
+    console.log(`Connecting to WebSocket: ${wsUrl}`);
+    ws = new WebSocket(wsUrl);
 
-ws.onclose = () => {
-    updateStatus("disconnected");
-    console.log("WebSocket disconnected");
-};
+    ws.onopen = () => {
+        updateStatus("connected");
+        console.log("WebSocket connected");
+        reconnectInterval = 1000; // Reset interval
+        loadSessions(); // Load chat history list
+    };
 
-ws.onmessage = async (event) => {
+    ws.onclose = (e) => {
+        updateStatus("disconnected");
+        console.log(`WebSocket disconnected (Code: ${e.code}, Reason: ${e.reason})`);
+        
+        // Show error in chat if it was a clean close or error
+        if (e.code !== 1000) {
+             // Optional: Add a small system message or toast
+             // addMessage(`Connection lost (Code: ${e.code}). Reconnecting...`, "system");
+        }
+
+        // Try to reconnect with exponential backoff
+        const timeout = Math.min(reconnectInterval, maxReconnectInterval);
+        console.log(`Reconnecting in ${timeout}ms...`);
+        setTimeout(connectWebSocket, timeout);
+        reconnectInterval *= 2;
+    };
+
+    ws.onerror = (err) => {
+        console.error("WebSocket error:", err);
+        updateStatus("error");
+        // addMessage("WebSocket connection error. Check console/network.", "system");
+        ws.close();
+    };
+
+    ws.onmessage = handleMessage;
+}
+
+const handleMessage = async (event) => {
     // Handle binary audio data
     if (event.data instanceof Blob) {
         playAudio(event.data);
@@ -97,6 +128,9 @@ ws.onmessage = async (event) => {
         console.error("Error parsing message:", e);
     }
 };
+
+// Start connection
+connectWebSocket();
 
 // UI Functions
 let currentMessageDiv = null;

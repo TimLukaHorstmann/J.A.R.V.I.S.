@@ -3,9 +3,9 @@ class JarvisVisualizer {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d');
         this.particles = [];
-        this.numParticles = 100;
-        this.radius = 200;
-        this.baseRadius = 200;
+        this.numParticles = 200;
+        this.radius = 250;
+        this.baseRadius = 250;
         this.centerX = 0;
         this.centerY = 0;
         this.angleX = 0;

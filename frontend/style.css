@@ -668,7 +668,6 @@ textarea::placeholder {
 
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 243, 255, 0.4);
-}
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
@@ -1157,4 +1156,51 @@ input:checked + .slider:before {
 
 .delete-memory:hover {
     opacity: 1;
+}
+
+/* Mobile Optimization */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 85%; /* Better for mobile than fixed px */
+        max-width: 320px;
+    }
+
+    .sidebar.open {
+        position: absolute; /* Overlay on mobile */
+        z-index: 100;
+    }
+
+    .header {
+        padding: 1rem;
+    }
+
+    .header h1 {
+        font-size: 1.2rem;
+    }
+
+    .input-area {
+        padding: 0.75rem;
+    }
+
+    .input-wrapper {
+        padding: 0.5rem;
+    }
+
+    #text-input {
+        font-size: 16px; /* Prevents iOS zoom on focus */
+    }
+
+    .controls {
+        gap: 0.5rem;
+        flex-wrap: wrap; /* Allow controls to wrap if needed */
+        justify-content: center;
+    }
+    
+    .message {
+        max-width: 90%;
+    }
+    
+    /* Hide sidebar toggle when sidebar is open if we want, 
+       but better to have a close button or click outside. 
+       For now, let's ensure the main content doesn't shrink. */
 }
