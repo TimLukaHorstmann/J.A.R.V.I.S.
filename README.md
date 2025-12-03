@@ -44,7 +44,8 @@ A voice-enabled advanced AI assistant inspired by the Marvel Cinematic Universe'
     *   **TTS:** Synthesizes AI responses into audio using the configured TTS engine.
     *   **Tooling:**
         *   Integrates with external tools via MCP servers ([`start_mcp_servers.sh`](backend/start_mcp_servers.sh)).
-        *   Includes custom Python tools (e.g., [`MagicFunction`](backend/app.py)).
+        *   **Home Assistant:** Fully integrated via MCP.
+        *   **Memory:** Long-term memory stored in SQLite, manageable via UI.
 
 ## Setup & Installation
 
@@ -66,6 +67,7 @@ A voice-enabled advanced AI assistant inspired by the Marvel Cinematic Universe'
         *   `GOOGLE_MAPS_API_KEY`
         *   `BRAVE_API_KEY`
         *   `ACCUWEATHER_API_KEY`
+        *   `HASS_URL` & `HASS_TOKEN` (for Home Assistant)
         *(See [`backend/start_mcp_servers.sh`](backend/start_mcp_servers.sh) or [`.vscode/mcp.json`](.vscode/mcp.json) for details)*
     *   **Start MCP Servers:**
         ```bash
@@ -84,6 +86,7 @@ A voice-enabled advanced AI assistant inspired by the Marvel Cinematic Universe'
 ## Configuration
 
 *   **Backend ([`backend/config.yaml`](backend/config.yaml)):** Configure LLM model details, ASR engine (Whisper settings), TTS engine (Kokoro, Coqui, FastTTS), logging level, and default location.
+*   **UI Settings:** Toggle tools (including Home Assistant) and TTS directly from the web interface.
 *   **VS Code MCP ([`.vscode/mcp.json`](.vscode/mcp.json)):** Defines MCP server configurations and required API key inputs for easy startup within VS Code using the Model Context Protocol extension.
 
 ## Usage
@@ -93,6 +96,7 @@ A voice-enabled advanced AI assistant inspired by the Marvel Cinematic Universe'
     *   Click the microphone button to start recording. Speak your query.
     *   Click the button again or wait for silence detection to stop recording.
     *   Alternatively, say "Hey Jarvis" (if wake word detection is active and supported by your browser) to start recording automatically.
+*   **Memory Management:** Use the "Memory" button in the sidebar to view, add, or delete long-term memories.
 *   **Language Selection:** Use the dropdown menu to select the input/output language (currently English or German).
 
 ## Docker

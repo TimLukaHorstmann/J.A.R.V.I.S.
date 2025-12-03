@@ -84,6 +84,10 @@ async def update_settings(new_settings: dict):
         
     if "tools" in new_settings:
         config["tools"] = new_settings["tools"]
+
+    if "application" in new_settings:
+        # Merge application settings
+        config["application"].update(new_settings["application"])
     
     # Save to file
     save_config()
@@ -111,6 +115,30 @@ async def create_session(request: dict):
 @app.delete("/api/sessions/{session_id}")
 async def delete_session(session_id: str):
     db_service.delete_session(session_id)
+    return {"status": "ok"}
+
+@app.delete("/api/sessions")
+async def delete_all_sessions():
+    db_service.delete_all_sessions()
+    return {"status": "ok"}
+
+# ─── Memory API ───────────────────────────────────────────────────────────────
+@app.get("/api/memory")
+async def get_memory():
+    return db_service.get_all_memories()
+
+@app.post("/api/memory")
+async def add_memory(request: dict):
+    key = request.get("key")
+    value = request.get("value")
+    if not key or not value:
+        return JSONResponse(status_code=400, content={"error": "Key and value required"})
+    db_service.add_memory(key, value)
+    return {"status": "ok"}
+
+@app.delete("/api/memory/{key}")
+async def delete_memory(key: str):
+    db_service.delete_memory(key)
     return {"status": "ok"}
 
 # ─── WebSocket Endpoint ───────────────────────────────────────────────────────
@@ -153,7 +181,8 @@ async def process_conversation(websocket: WebSocket, user_text: str, session_id:
             db_service.add_message(session_id, "assistant", full_response_text)
 
         # 3. Speak (TTS)
-        if full_response_text:
+        tts_enabled = config.get("application", {}).get("tts_enabled", True)
+        if full_response_text and tts_enabled:
             audio_out = audio_service.synthesize(full_response_text)
             if audio_out:
                 await websocket.send_bytes(audio_out)

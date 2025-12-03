@@ -1,20 +1,5 @@
 const ws = new WebSocket(`ws://${location.host}/ws`);
 
-// DOM Elements
-const statusDot = document.getElementById("connection-status");
-const statusText = document.getElementById("status-text");
-const conversation = document.getElementById("conversation");
-const textInput = document.getElementById("text-input");
-const sendButton = document.getElementById("send-button");
-const micButton = document.getElementById("mic-button");
-const stopButton = document.getElementById("stop-button");
-const wakeWordToggle = document.getElementById("wake-word-toggle");
-const languageSelector = document.getElementById("language-selector");
-const sidebar = document.getElementById("sidebar");
-const sidebarToggle = document.getElementById("sidebar-toggle");
-const chatList = document.getElementById("chat-list");
-const newChatBtn = document.getElementById("new-chat-btn");
-
 // State
 let isRecording = false;
 let mediaRecorder = null;
@@ -42,7 +27,6 @@ ws.onmessage = async (event) => {
         playAudio(event.data);
         if (window.jarvisVisualizer) {
             window.jarvisVisualizer.setSpeaking(true);
-            // Reset after audio duration (approximate or listen to 'ended' event in playAudio)
         }
         return;
     }
@@ -53,10 +37,12 @@ ws.onmessage = async (event) => {
         
         if (data.type === "session_init") {
             currentSessionId = data.session_id;
-            // Clear conversation if it's a fresh session and we aren't loading history
             if (!data.restored) {
-                conversation.innerHTML = '';
-                addMessage("System initialized. Ready for input.", "system");
+                const conversation = document.getElementById("conversation");
+                if (conversation) {
+                    conversation.innerHTML = '';
+                    addMessage("System initialized. Ready for input.", "system");
+                }
             }
             loadSessions();
         } else if (data.type === "history") {
@@ -105,24 +91,31 @@ let currentMessageDiv = null;
 let currentMessageType = null;
 
 function updateStatus(status) {
-    statusDot.className = `status-dot ${status}`;
-    statusText.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+    const statusDot = document.getElementById("connection-status");
+    const statusText = document.getElementById("status-text");
+    if (statusDot) statusDot.className = `status-dot ${status}`;
+    if (statusText) statusText.textContent = status.charAt(0).toUpperCase() + status.slice(1);
 }
 
 function setGenerating(generating) {
     isGenerating = generating;
+    const stopButton = document.getElementById("stop-button");
+    const micButton = document.getElementById("mic-button");
+    
     if (generating) {
-        stopButton.classList.remove("hidden");
-        micButton.classList.add("hidden");
+        if (stopButton) stopButton.classList.remove("hidden");
+        if (micButton) micButton.classList.add("hidden");
     } else {
-        stopButton.classList.add("hidden");
-        micButton.classList.remove("hidden");
+        if (stopButton) stopButton.classList.add("hidden");
+        if (micButton) micButton.classList.remove("hidden");
         currentMessageDiv = null; // Reset stream buffer
     }
 }
 
 function appendToMessage(text, type) {
     if (!text) return;
+    const conversation = document.getElementById("conversation");
+    if (!conversation) return;
 
     if (!currentMessageDiv || currentMessageType !== type) {
         addMessage("", type);
@@ -150,6 +143,8 @@ function appendToMessage(text, type) {
 function addMessage(text, sender) {
     currentMessageDiv = null;
     currentMessageType = null;
+    const conversation = document.getElementById("conversation");
+    if (!conversation) return;
 
     const messageDiv = document.createElement("div");
     messageDiv.className = `message ${sender}`;
@@ -172,9 +167,10 @@ function addMessage(text, sender) {
 }
 
 function renderHistory(messages) {
+    const conversation = document.getElementById("conversation");
+    if (!conversation) return;
     conversation.innerHTML = '';
     messages.forEach(msg => {
-        // Map backend roles to frontend classes
         let sender = msg.role;
         if (sender === "assistant") sender = "jarvis";
         addMessage(msg.content, sender);
@@ -193,6 +189,9 @@ async function loadSessions() {
 }
 
 function renderSessionList(sessions) {
+    const chatList = document.getElementById("chat-list");
+    if (!chatList) return;
+    
     chatList.innerHTML = '';
     sessions.forEach(session => {
         const div = document.createElement('div');
@@ -214,7 +213,6 @@ function renderSessionList(sessions) {
         div.appendChild(deleteBtn);
         
         div.onclick = (e) => {
-            // Only load if not clicking delete
             if (!e.target.closest('.delete-btn')) {
                 loadSession(session.id);
             }
@@ -231,8 +229,6 @@ async function deleteSession(sessionId, event) {
 
     try {
         await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' });
-        
-        // If we deleted the current session, create a new one
         if (sessionId === currentSessionId) {
             createNewSession();
         } else {
@@ -251,10 +247,10 @@ function loadSession(sessionId) {
         session_id: sessionId
     }));
     currentSessionId = sessionId;
-    loadSessions(); // Refresh active state
+    loadSessions();
     
-    // Close sidebar on mobile
-    if (window.innerWidth < 768) {
+    const sidebar = document.getElementById("sidebar");
+    if (window.innerWidth < 768 && sidebar) {
         sidebar.classList.remove("open");
     }
 }
@@ -307,7 +303,8 @@ async function startRecording() {
 
         mediaRecorder.start();
         isRecording = true;
-        micButton.classList.add("recording");
+        const micButton = document.getElementById("mic-button");
+        if (micButton) micButton.classList.add("recording");
         stopWakeWordDetection();
         
     } catch (err) {
@@ -320,15 +317,17 @@ function stopRecording() {
     if (mediaRecorder && isRecording) {
         mediaRecorder.stop();
         isRecording = false;
-        micButton.classList.remove("recording");
+        const micButton = document.getElementById("mic-button");
+        if (micButton) micButton.classList.remove("recording");
     }
 }
 
 // Wake Word Detection
 function initWakeWordDetection() {
+    const wakeWordToggle = document.getElementById("wake-word-toggle");
     if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
         console.warn("Speech recognition not supported");
-        wakeWordToggle.style.display = "none";
+        if (wakeWordToggle) wakeWordToggle.style.display = "none";
         return;
     }
 
@@ -382,6 +381,8 @@ function stopWakeWordDetection() {
 }
 
 function updateWakeWordUI() {
+    const wakeWordToggle = document.getElementById("wake-word-toggle");
+    if (!wakeWordToggle) return;
     if (wakeWordEnabled) {
         wakeWordToggle.classList.add("active");
     } else {
@@ -389,98 +390,21 @@ function updateWakeWordUI() {
     }
 }
 
-// Event Listeners
-sendButton.addEventListener("click", () => {
-    const text = textInput.value.trim();
-    if (text) {
-        ws.send(JSON.stringify({
-            type: "text",
-            text: text,
-            language: languageSelector.value
-        }));
-        
-        addMessage(text, "user");
-        textInput.value = "";
-        setGenerating(true);
-    }
-});
-
-textInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        sendButton.click();
-    }
-});
-
-micButton.addEventListener("click", () => {
-    if (isRecording) {
-        stopRecording();
-    } else {
-        startRecording();
-    }
-});
-
-stopButton.addEventListener("click", () => {
-    ws.send(JSON.stringify({ type: "stop" }));
-    setGenerating(false);
-});
-
-wakeWordToggle.addEventListener("click", () => {
-    wakeWordEnabled = !wakeWordEnabled;
-    updateWakeWordUI();
-    if (wakeWordEnabled) startWakeWordDetection();
-    else stopWakeWordDetection();
-});
-
-sidebarToggle.addEventListener("click", () => {
-    sidebar.classList.toggle("open");
-});
-
-newChatBtn.addEventListener("click", createNewSession);
-
-// Initialize
-initWakeWordDetection();
-
-// Settings Modal Logic
-const settingsBtn = document.getElementById("settings-btn");
-const settingsModal = document.getElementById("settings-modal");
-const closeSettingsBtn = document.getElementById("close-settings");
-const saveSettingsBtn = document.getElementById("save-settings");
-const toolsList = document.getElementById("tools-list");
-
-if (settingsBtn) {
-    settingsBtn.addEventListener("click", async () => {
-        settingsModal.style.display = "block";
-        await loadSettings();
-    });
-}
-
-if (closeSettingsBtn) {
-    closeSettingsBtn.addEventListener("click", () => {
-        settingsModal.style.display = "none";
-    });
-}
-
-window.addEventListener("click", (event) => {
-    if (event.target === settingsModal) {
-        settingsModal.style.display = "none";
-    }
-});
-
-if (saveSettingsBtn) {
-    saveSettingsBtn.addEventListener("click", async () => {
-        await saveSettings();
-        settingsModal.style.display = "none";
-    });
-}
-
+// Settings & Memory Functions
 async function loadSettings() {
     try {
         const response = await fetch("/api/settings");
         const config = await response.json();
         
-        if (config.tools) {
+        const toolsList = document.getElementById("tools-list");
+        if (config.tools && toolsList) {
             renderTools(config.tools);
+        }
+        
+        const ttsToggle = document.getElementById("app-tts_enabled");
+        if (ttsToggle) {
+            const enabled = config.application && config.application.tts_enabled;
+            ttsToggle.checked = enabled !== undefined ? enabled : true;
         }
     } catch (error) {
         console.error("Error loading settings:", error);
@@ -488,15 +412,23 @@ async function loadSettings() {
 }
 
 async function saveSettings() {
+    const toolsList = document.getElementById("tools-list");
+    const ttsToggle = document.getElementById("app-tts_enabled");
+    
     const toolsConfig = {};
-    const toolInputs = toolsList.querySelectorAll("input[type='checkbox']");
-    toolInputs.forEach(input => {
-        const toolName = input.id.replace("tool-", "");
-        toolsConfig[toolName] = input.checked;
-    });
+    if (toolsList) {
+        const toolInputs = toolsList.querySelectorAll("input[type='checkbox']");
+        toolInputs.forEach(input => {
+            const toolName = input.id.replace("tool-", "");
+            toolsConfig[toolName] = input.checked;
+        });
+    }
 
     const newSettings = {
-        tools: toolsConfig
+        tools: toolsConfig,
+        application: {
+            tts_enabled: ttsToggle ? ttsToggle.checked : true
+        }
     };
     
     try {
@@ -515,9 +447,75 @@ async function saveSettings() {
     }
 }
 
+async function loadMemories() {
+    try {
+        const response = await fetch("/api/memory");
+        const memories = await response.json();
+        renderMemories(memories);
+    } catch (error) {
+        console.error("Error loading memories:", error);
+    }
+}
+
+async function addMemory(key, value) {
+    try {
+        await fetch("/api/memory", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ key, value })
+        });
+    } catch (error) {
+        console.error("Error adding memory:", error);
+    }
+}
+
+async function deleteMemory(key) {
+    try {
+        await fetch(`/api/memory/${encodeURIComponent(key)}`, {
+            method: "DELETE"
+        });
+        await loadMemories();
+    } catch (error) {
+        console.error("Error deleting memory:", error);
+    }
+}
+
+function renderMemories(memories) {
+    const memoryList = document.getElementById("memory-list");
+    if (!memoryList) return;
+    
+    memoryList.innerHTML = "";
+    if (memories.length === 0) {
+        memoryList.innerHTML = "<p>No memories stored.</p>";
+        return;
+    }
+    
+    memories.forEach(mem => {
+        const div = document.createElement("div");
+        div.className = "memory-item";
+        div.innerHTML = `
+            <div class="memory-content">
+                <strong>${mem.key}</strong>: ${mem.value}
+            </div>
+            <button class="icon-btn delete-memory" data-key="${mem.key}">&times;</button>
+        `;
+        memoryList.appendChild(div);
+    });
+    
+    // Add delete listeners
+    document.querySelectorAll(".delete-memory").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            const key = e.target.getAttribute("data-key");
+            deleteMemory(key);
+        });
+    });
+}
+
 function renderTools(toolsConfig) {
+    const toolsList = document.getElementById("tools-list");
+    if (!toolsList) return;
+    
     toolsList.innerHTML = "";
-    // Sort keys to keep list stable
     const sortedKeys = Object.keys(toolsConfig).sort();
     
     for (const toolName of sortedKeys) {
@@ -538,3 +536,176 @@ function renderTools(toolsConfig) {
 function formatToolName(name) {
     return name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 }
+
+// Initialize - Main Entry Point
+document.addEventListener('DOMContentLoaded', () => {
+    // DOM Elements
+    const textInput = document.getElementById("text-input");
+    const sendButton = document.getElementById("send-button");
+    const micButton = document.getElementById("mic-button");
+    const stopButton = document.getElementById("stop-button");
+    const wakeWordToggle = document.getElementById("wake-word-toggle");
+    const languageSelector = document.getElementById("language-selector");
+    const sidebarToggle = document.getElementById("sidebar-toggle");
+    const newChatBtn = document.getElementById("new-chat-btn");
+    const deleteAllBtn = document.getElementById("delete-all-btn");
+    
+    // Settings Elements
+    const settingsBtn = document.getElementById("settings-btn");
+    const settingsModal = document.getElementById("settings-modal");
+    const closeSettingsBtn = document.getElementById("close-settings");
+    const saveSettingsBtn = document.getElementById("save-settings");
+    
+    // Memory Elements
+    const memoryBtn = document.getElementById("memory-btn");
+    const memoryModal = document.getElementById("memory-modal");
+    const closeMemoryBtn = document.getElementById("close-memory");
+    const addMemoryBtn = document.getElementById("add-memory-btn");
+    const memoryKeyInput = document.getElementById("memory-key");
+    const memoryValueInput = document.getElementById("memory-value");
+
+    // Event Listeners
+    if (sendButton) {
+        sendButton.addEventListener("click", () => {
+            const text = textInput.value.trim();
+            if (text) {
+                ws.send(JSON.stringify({
+                    type: "text",
+                    text: text,
+                    language: languageSelector ? languageSelector.value : 'en'
+                }));
+                
+                addMessage(text, "user");
+                textInput.value = "";
+                setGenerating(true);
+            }
+        });
+    }
+
+    if (textInput) {
+        textInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                if (sendButton) sendButton.click();
+            }
+        });
+    }
+
+    if (micButton) {
+        micButton.addEventListener("click", () => {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        });
+    }
+
+    if (stopButton) {
+        stopButton.addEventListener("click", () => {
+            ws.send(JSON.stringify({ type: "stop" }));
+            setGenerating(false);
+        });
+    }
+
+    if (wakeWordToggle) {
+        wakeWordToggle.addEventListener("click", () => {
+            wakeWordEnabled = !wakeWordEnabled;
+            updateWakeWordUI();
+            if (wakeWordEnabled) startWakeWordDetection();
+            else stopWakeWordDetection();
+        });
+    }
+
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener("click", () => {
+            const sidebar = document.getElementById("sidebar");
+            if (sidebar) sidebar.classList.toggle("open");
+        });
+    }
+
+    if (newChatBtn) {
+        newChatBtn.addEventListener("click", createNewSession);
+    }
+
+    if (deleteAllBtn) {
+        deleteAllBtn.addEventListener("click", async () => {
+            if (confirm("Are you sure you want to delete ALL chats? This cannot be undone.")) {
+                try {
+                    await fetch("/api/sessions", { method: "DELETE" });
+                    currentSessionId = null;
+                    const conversation = document.getElementById("conversation");
+                    if (conversation) {
+                        conversation.innerHTML = "";
+                        addMessage("All chats deleted. Starting fresh session.", "system");
+                    }
+                    await loadSessions();
+                    createNewSession(); // Start fresh
+                } catch (e) {
+                    console.error("Error deleting all sessions:", e);
+                }
+            }
+        });
+    }
+
+    // Settings Modal Logic
+    if (settingsBtn) {
+        settingsBtn.addEventListener("click", async () => {
+            if (settingsModal) settingsModal.style.display = "block";
+            await loadSettings();
+        });
+    }
+
+    if (closeSettingsBtn) {
+        closeSettingsBtn.addEventListener("click", () => {
+            if (settingsModal) settingsModal.style.display = "none";
+        });
+    }
+
+    if (saveSettingsBtn) {
+        saveSettingsBtn.addEventListener("click", async () => {
+            await saveSettings();
+            if (settingsModal) settingsModal.style.display = "none";
+        });
+    }
+
+    // Memory Modal Logic
+    if (memoryBtn) {
+        memoryBtn.addEventListener("click", async () => {
+            if (memoryModal) memoryModal.style.display = "block";
+            await loadMemories();
+        });
+    }
+
+    if (closeMemoryBtn) {
+        closeMemoryBtn.addEventListener("click", () => {
+            if (memoryModal) memoryModal.style.display = "none";
+        });
+    }
+
+    if (addMemoryBtn) {
+        addMemoryBtn.addEventListener("click", async () => {
+            const key = memoryKeyInput.value.trim();
+            const value = memoryValueInput.value.trim();
+            if (key && value) {
+                await addMemory(key, value);
+                memoryKeyInput.value = "";
+                memoryValueInput.value = "";
+                await loadMemories();
+            }
+        });
+    }
+
+    window.addEventListener("click", (event) => {
+        if (settingsModal && event.target === settingsModal) {
+            settingsModal.style.display = "none";
+        }
+        if (memoryModal && event.target === memoryModal) {
+            memoryModal.style.display = "none";
+        }
+    });
+
+    // Initial Load
+    initWakeWordDetection();
+    loadSettings();
+});

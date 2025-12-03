@@ -102,6 +102,14 @@ class DatabaseService:
         conn.commit()
         conn.close()
 
+    def delete_all_sessions(self):
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute("DELETE FROM messages")
+        c.execute("DELETE FROM sessions")
+        conn.commit()
+        conn.close()
+
     def add_memory(self, key: str, value: str):
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
@@ -120,18 +128,18 @@ class DatabaseService:
         conn.close()
         return row[0] if row else None
     
-    def get_all_memories(self) -> Dict[str, str]:
+    def get_all_memories(self) -> List[Dict]:
         conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
         c = conn.cursor()
-        c.execute("SELECT key, value FROM memory")
+        c.execute("SELECT * FROM memory ORDER BY updated_at DESC")
         rows = c.fetchall()
         conn.close()
-        return {row[0]: row[1] for row in rows}
+        return [dict(row) for row in rows]
 
-    def delete_session(self, session_id: str):
+    def delete_memory(self, key: str):
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
-        c.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
-        c.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+        c.execute("DELETE FROM memory WHERE key = ?", (key,))
         conn.commit()
         conn.close()

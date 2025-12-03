@@ -2,6 +2,7 @@ application:
   log_format: "%(asctime)s %(levelname)s %(name)s \u2500 %(message)s"
   log_level: INFO
   name: Jarvis
+  tts_enabled: true
 asr:
   engine: whisper
   whisper:
@@ -45,6 +46,7 @@ tools:
   weather: true
   web_search: true
   wikipedia: true
+  home_assistant: true
 tts:
   chatterbox:
     audio_prompt_path: voice_samples/jarvis_sample.wav

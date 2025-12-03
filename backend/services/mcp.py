@@ -24,10 +24,12 @@ class MCPService:
         ha_url = os.getenv("HASS_URL") or ha_config.get("url")
         ha_token = os.getenv("HASS_TOKEN") or ha_config.get("token")
         
-        # Determine if enabled: explicit config OR presence of credentials
-        ha_enabled = ha_config.get("enabled", False) or (ha_url and ha_token)
+        # Determine if enabled: check tools config AND presence of credentials
+        # We use the 'tools' section to allow UI toggling
+        tools_config = self.config.get("tools", {})
+        ha_enabled = tools_config.get("home_assistant", False) and (ha_url and ha_token)
         
-        if ha_enabled and ha_url and ha_token:
+        if ha_enabled:
             # Ensure URL ends with /api/mcp for the MCP endpoint
             # If the user provided the base URL (e.g. http://localhost:8123), append /api/mcp
             if not ha_url.endswith("/api/mcp"):
