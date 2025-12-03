@@ -6,16 +6,28 @@ import numpy as np
 import soundfile as sf
 import subprocess
 import tempfile
+import requests
+import ormsgpack
 from faster_whisper import WhisperModel
 from kokoro import KPipeline
 import torch
 import torchaudio
+
+# Try importing TTS (Coqui)
+try:
+    from TTS.api import TTS
+    HAS_XTTS = True
+except ImportError:
+    HAS_XTTS = False
 
 # Monkeypatch torch.load to handle CUDA models on CPU/MPS
 _original_load = torch.load
 def _safe_load(*args, **kwargs):
     if 'map_location' not in kwargs and not torch.cuda.is_available():
         kwargs['map_location'] = 'cpu'
+    # Fix for PyTorch 2.6+ default weights_only=True breaking older pickles
+    if 'weights_only' not in kwargs:
+        kwargs['weights_only'] = False
     return _original_load(*args, **kwargs)
 torch.load = _safe_load
 
@@ -59,9 +71,42 @@ class AudioService:
                 self.tts_engine = 'kokoro'
             else:
                 self._init_chatterbox()
+
+        if self.tts_engine == 'xtts':
+            if not HAS_XTTS:
+                logger.error("XTTS requested but 'TTS' package not installed. Falling back to Kokoro.")
+                self.tts_engine = 'kokoro'
+            else:
+                self._init_xtts()
         
+        if self.tts_engine == 'fish_speech':
+            self._init_fish_speech()
+
         if self.tts_engine == 'kokoro':
             self._init_kokoro()
+
+    def _init_fish_speech(self):
+        tts_config = self.config['tts']['fish_speech']
+        logger.info("Initializing Fish Speech client...")
+        self.fs_url = tts_config.get('url', 'http://localhost:7861')
+        self.fs_ref_audio = tts_config.get('reference_audio_path')
+        self.fs_ref_text = tts_config.get('reference_text_path')
+        self.sample_rate = 44100 # Fish Speech usually outputs 44.1kHz
+
+        # Pre-load reference audio/text
+        if self.fs_ref_audio and os.path.exists(self.fs_ref_audio):
+            with open(self.fs_ref_audio, "rb") as f:
+                self.fs_ref_audio_bytes = f.read()
+        else:
+            logger.warning(f"Fish Speech reference audio not found: {self.fs_ref_audio}")
+            self.fs_ref_audio_bytes = None
+
+        if self.fs_ref_text and os.path.exists(self.fs_ref_text):
+            with open(self.fs_ref_text, "r") as f:
+                self.fs_ref_text_content = f.read().strip()
+        else:
+            logger.warning(f"Fish Speech reference text not found: {self.fs_ref_text}")
+            self.fs_ref_text_content = ""
 
     def _init_kokoro(self):
         tts_config = self.config['tts']['kokoro']
@@ -90,6 +135,36 @@ class AudioService:
         self.cb_audio_prompt = tts_config.get('audio_prompt_path')
         self.cb_lang = tts_config.get('language', 'en')
         self.sample_rate = self.cb_model.sr
+
+    def _init_xtts(self):
+        tts_config = self.config['tts']['xtts']
+        logger.info("Loading XTTS-v2...")
+        
+        # Check for local model path
+        local_model_path = tts_config.get('local_model_path')
+        model_args = {}
+        
+        if local_model_path and os.path.exists(local_model_path):
+            logger.info(f"Loading local XTTS model from {local_model_path}")
+            model_args['model_path'] = local_model_path
+            model_args['config_path'] = os.path.join(local_model_path, "config.json")
+            # XTTS v2 usually needs vocab.json too if loading manually, but TTS class might handle it if in same dir
+            # If not, we might need to pass it. But let's assume standard folder structure.
+        else:
+            model_args['model_name'] = tts_config.get('model_name', "tts_models/multilingual/multi-dataset/xtts_v2")
+            
+        # XTTS on MPS (Mac GPU) has known issues with attention masks in some versions.
+        # If we are on MPS, we might need to force CPU for stability if it crashes.
+        # The error "Can't infer missing attention mask on mps device" suggests we should use CPU for now.
+        if self.device == 'mps':
+            logger.warning("XTTS on MPS detected. Forcing CPU for XTTS to avoid attention mask errors.")
+            self.xtts_model = TTS(**model_args).to('cpu')
+        else:
+            self.xtts_model = TTS(**model_args).to(self.device)
+        
+        self.xtts_speaker_wav = tts_config.get('speaker_wav', 'voice_samples/jarvis_sample.wav')
+        self.xtts_language = tts_config.get('language', 'en')
+        self.sample_rate = 24000
 
     def transcribe(self, audio_buffer: bytes) -> str:
         """Transcribes raw audio bytes to text."""
@@ -142,11 +217,64 @@ class AudioService:
         try:
             if self.tts_engine == 'chatterbox':
                 return self._synthesize_chatterbox(text)
+            elif self.tts_engine == 'xtts':
+                return self._synthesize_xtts(text)
+            elif self.tts_engine == 'fish_speech':
+                return self._synthesize_fish_speech(text)
             else:
                 return self._synthesize_kokoro(text)
             
         except Exception as e:
             logger.error(f"Synthesis failed: {e}")
+            return b""
+
+    def _synthesize_fish_speech(self, text: str) -> bytes:
+        if not self.fs_ref_audio_bytes or not self.fs_ref_text_content:
+            logger.error("Fish Speech reference audio/text not loaded.")
+            return b""
+
+        # Construct request payload manually to avoid dataclass dependency here
+        # Structure:
+        # {
+        #   "text": "...",
+        #   "references": [{"audio": bytes, "text": "..."}],
+        #   "format": "wav",
+        #   ...
+        # }
+        
+        req_dict = {
+            "text": text,
+            "references": [{
+                "audio": self.fs_ref_audio_bytes,
+                "text": self.fs_ref_text_content
+            }],
+            "reference_id": None,
+            "max_new_tokens": 1024,
+            "chunk_length": 200,
+            "top_p": 0.7,
+            "repetition_penalty": 1.2,
+            "temperature": 0.7,
+            "format": "wav",
+            "streaming": False,
+            "normalize": True,
+        }
+
+        try:
+            payload = ormsgpack.packb(req_dict)
+            response = requests.post(
+                f"{self.fs_url}/v1/tts",
+                data=payload,
+                headers={"Content-Type": "application/msgpack"},
+                timeout=60.0
+            )
+            
+            if response.status_code == 200:
+                return response.content
+            else:
+                logger.error(f"Fish Speech API error: {response.status_code} - {response.text}")
+                return b""
+        except Exception as e:
+            logger.error(f"Fish Speech request failed: {e}")
             return b""
 
     def _synthesize_kokoro(self, text: str) -> bytes:
@@ -171,6 +299,24 @@ class AudioService:
         # Convert to WAV bytes
         out_buf = io.BytesIO()
         sf.write(out_buf, full_audio, self.sample_rate, format='WAV')
+        return out_buf.getvalue()
+
+    def _synthesize_xtts(self, text: str) -> bytes:
+        # Check for speaker wav
+        speaker_wav = self.xtts_speaker_wav
+        if not os.path.exists(speaker_wav):
+             logger.warning(f"Speaker sample not found: {speaker_wav}. Using default if available or failing.")
+        
+        # Generate
+        # TTS.tts returns a list of floats
+        wav = self.xtts_model.tts(text=text, speaker_wav=speaker_wav, language=self.xtts_language)
+        
+        # Convert to numpy
+        wav_np = np.array(wav, dtype=np.float32)
+        
+        # Convert to bytes
+        out_buf = io.BytesIO()
+        sf.write(out_buf, wav_np, self.sample_rate, format='WAV')
         return out_buf.getvalue()
 
     def _synthesize_chatterbox(self, text: str) -> bytes:

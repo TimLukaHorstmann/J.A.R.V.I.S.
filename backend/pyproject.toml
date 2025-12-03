@@ -31,11 +31,20 @@ dependencies = [
     "mcp",
     "torch==2.6.0",
     "torchaudio==2.6.0",
-    "chatterbox-tts",
     "spotipy",
     "python-dotenv",
     "paho-mqtt>=2.1.0",
+    "ormsgpack",
 ]
+
+[project.optional-dependencies]
+xtts = [
+    "TTS>=0.22.0",
+    "transformers<4.42", 
+]
+# chatterbox = [
+#     "chatterbox-tts",
+# ]
 
 [build-system]
 requires = ["hatchling"]

@@ -65,7 +65,16 @@ class MCPService:
                 logger.info(f"Loaded {len(self.tools)} tools from MCP servers.")
                 return
             except Exception as e:
+                # Log detailed error for debugging
+                import traceback
                 logger.warning(f"Attempt {attempt+1}/5: Failed to initialize MCP client: {e}")
+                logger.debug(traceback.format_exc())
+                
+                # Try to identify which server failed if possible (MultiServerMCPClient might not expose this easily)
+                # But we can log the servers we are trying to connect to
+                if attempt == 0:
+                    logger.info(f"Configured MCP servers: {list(server_map.keys())}")
+
                 if attempt < 4:
                     await asyncio.sleep(2) # Wait 2 seconds before retrying
         
