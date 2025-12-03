@@ -45,7 +45,6 @@ tools:
   weather: true
   web_search: true
   wikipedia: true
-  home_assistant: false
 tts:
   chatterbox:
     audio_prompt_path: voice_samples/jarvis_sample.wav
