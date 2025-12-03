@@ -3,9 +3,10 @@ class JarvisVisualizer {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d');
         this.particles = [];
-        this.numParticles = 200;
-        this.radius = 250;
-        this.baseRadius = 250;
+        // Reduce particles on mobile for performance
+        this.numParticles = window.innerWidth < 768 ? 80 : 200;
+        this.radius = window.innerWidth < 768 ? 150 : 250;
+        this.baseRadius = this.radius;
         this.centerX = 0;
         this.centerY = 0;
         this.angleX = 0;

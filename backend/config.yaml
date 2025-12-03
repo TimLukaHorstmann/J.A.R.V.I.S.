@@ -2,7 +2,7 @@ application:
   log_format: "%(asctime)s %(levelname)s %(name)s \u2500 %(message)s"
   log_level: INFO
   name: Jarvis
-  tts_enabled: true
+  tts_enabled: false
 asr:
   engine: whisper
   whisper:
@@ -52,21 +52,21 @@ tools:
   web_search: true
   wikipedia: true
 tts:
-  engine: kokoro
-  fish_speech:
-    url: http://localhost:7861
-    reference_audio_path: voice_samples/jarvis_sample.wav
-    reference_text_path: voice_samples/jarvis/sample.lab
   chatterbox:
     audio_prompt_path: voice_samples/jarvis_sample.wav
     device: cpu
     language: en
     model_name: ChatterboxMultilingualTTS
+  engine: kokoro
+  fish_speech:
+    reference_audio_path: voice_samples/jarvis_sample.wav
+    reference_text_path: voice_samples/jarvis/sample.lab
+    url: http://localhost:7861
   kokoro:
     lang_code: a
     sample_rate: 24000
     voice: am_liam
   xtts:
+    language: en
     local_model_path: pretrained_models/xtts-v2
     speaker_wav: voice_samples/jarvis_sample.wav
-    language: en

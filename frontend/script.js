@@ -967,10 +967,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const sidebarOverlay = document.getElementById("sidebar-overlay");
+
     if (sidebarToggle) {
         sidebarToggle.addEventListener("click", () => {
             const sidebar = document.getElementById("sidebar");
-            if (sidebar) sidebar.classList.toggle("open");
+            if (sidebar) {
+                sidebar.classList.toggle("open");
+                if (sidebarOverlay) {
+                    sidebarOverlay.classList.toggle("active", sidebar.classList.contains("open"));
+                }
+            }
+        });
+    }
+
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener("click", () => {
+            const sidebar = document.getElementById("sidebar");
+            if (sidebar) {
+                sidebar.classList.remove("open");
+                sidebarOverlay.classList.remove("active");
+            }
         });
     }
 

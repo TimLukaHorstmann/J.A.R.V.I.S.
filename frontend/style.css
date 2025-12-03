@@ -25,6 +25,7 @@ body {
     color: var(--text-primary);
     font-family: var(--font-main);
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
     display: flex;
     justify-content: center;
@@ -1160,47 +1161,126 @@ input:checked + .slider:before {
 
 /* Mobile Optimization */
 @media (max-width: 768px) {
+    /* Layout & Container */
+    .container {
+        flex-direction: column;
+    }
+
+    /* Sidebar - Drawer Style */
     .sidebar {
-        width: 85%; /* Better for mobile than fixed px */
-        max-width: 320px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 85%;
+        max-width: 300px;
+        transform: translateX(-100%);
+        z-index: 1000;
+        box-shadow: 10px 0 30px rgba(0,0,0,0.5);
     }
 
     .sidebar.open {
-        position: absolute; /* Overlay on mobile */
-        z-index: 100;
+        transform: translateX(0);
     }
 
+    /* Overlay for sidebar */
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        backdrop-filter: blur(3px);
+        z-index: 999;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .sidebar-overlay.active {
+        display: block;
+        opacity: 1;
+    }
+
+    /* Header */
     .header {
-        padding: 1rem;
+        padding: 0.8rem 1rem;
+    }
+    
+    .logo h1 {
+        font-size: 1.1rem;
+        letter-spacing: 2px;
+    }
+    
+    .status-text {
+        display: none; /* Hide text, keep dot */
     }
 
-    .header h1 {
-        font-size: 1.2rem;
+    /* Chat Area */
+    .chat-interface {
+        padding: 0.5rem 1rem;
     }
-
-    .input-area {
-        padding: 0.75rem;
-    }
-
-    .input-wrapper {
-        padding: 0.5rem;
-    }
-
-    #text-input {
-        font-size: 16px; /* Prevents iOS zoom on focus */
-    }
-
-    .controls {
-        gap: 0.5rem;
-        flex-wrap: wrap; /* Allow controls to wrap if needed */
-        justify-content: center;
+    
+    .messages-area {
+        padding-bottom: 1rem;
     }
     
     .message {
-        max-width: 90%;
+        max-width: 95%;
     }
     
-    /* Hide sidebar toggle when sidebar is open if we want, 
-       but better to have a close button or click outside. 
-       For now, let's ensure the main content doesn't shrink. */
+    .message .content {
+        padding: 0.8rem 1rem;
+        font-size: 0.95rem;
+    }
+
+    /* Input Area */
+    .input-area {
+        padding: 0.8rem;
+        gap: 0.5rem;
+        background: rgba(5, 5, 5, 0.95); /* More solid background */
+        backdrop-filter: blur(10px);
+    }
+
+    /* Controls - Compact Row */
+    .controls {
+        justify-content: space-between;
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: 5px;
+    }
+    
+    .controls .icon-btn {
+        padding: 0.4rem;
+    }
+    
+    .controls svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    /* Input Wrapper */
+    .input-wrapper {
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+    }
+    
+    #text-input {
+        font-size: 16px; /* iOS zoom prevention */
+        max-height: 80px;
+    }
+    
+    .mic-btn, .send-btn, .stop-btn {
+        width: 36px;
+        height: 36px;
+        padding: 0.4rem;
+    }
+
+    /* Modals */
+    .modal-content {
+        width: 90%;
+        margin: 20% auto;
+        padding: 1.5rem;
+    }
 }
