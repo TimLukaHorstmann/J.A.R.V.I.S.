@@ -5,9 +5,11 @@ let isRecording = false;
 let mediaRecorder = null;
 let audioChunks = [];
 let wakeWordEnabled = true;
+let thinkingEnabled = true;
 let wakeWordRecognition = null;
 let currentSessionId = null;
 let isGenerating = false;
+let activeAgentMessage = null;
 
 // WebSocket Events
 ws.onopen = () => {
@@ -52,30 +54,33 @@ ws.onmessage = async (event) => {
         } else if (data.type === "transcription") {
             addMessage(data.text, "user");
             setGenerating(true);
+            activeAgentMessage = null; // Reset for new turn
         } else if (data.type === "text") {
             const content = data.chunk || data.content || data.data || "";
-            if (data.chunk) {
-                appendToMessage(content, "jarvis");
-            } else if (content) {
-                addMessage(content, "jarvis");
-            }
+            updateAgentMessage("text", content);
         } else if (data.type === "thought") {
             const content = data.chunk || data.content || "";
-            if (data.chunk) {
-                appendToMessage(content, "thought");
-            } else if (content) {
-                addMessage(content, "thought");
-            }
+            updateAgentMessage("thought", content);
         } else if (data.type === "tool_call") {
-            const args = data.args ? JSON.stringify(data.args, null, 2) : "{}";
-            const toolInfo = `🛠️ Calling ${data.tool}...\nArgs: ${args}`;
-            addMessage(toolInfo, "tool-call");
+            updateAgentMessage("tool_call", data);
         } else if (data.type === "tool_result") {
-            const content = data.content || "";
-            const resultInfo = `✅ Result from ${data.tool}:\n${content}`;
-            addMessage(resultInfo, "tool-result");
+            updateAgentMessage("tool_result", data);
         } else if (data.type === "complete") {
             setGenerating(false);
+            if (activeAgentMessage) {
+                updateAgentStatus("Done", "check");
+                
+                // Collapse trace after delay
+                const msgToCollapse = activeAgentMessage;
+                setTimeout(() => {
+                    if (msgToCollapse && msgToCollapse.traceDiv) {
+                        msgToCollapse.traceDiv.classList.remove("visible");
+                        msgToCollapse.statusDiv.classList.remove("expanded");
+                    }
+                }, 3000);
+                
+                activeAgentMessage = null;
+            }
         } else if (data.type === "error") {
             console.error("Server error:", data.message);
             addMessage(`Error: ${data.message}`, "system");
@@ -112,32 +117,168 @@ function setGenerating(generating) {
     }
 }
 
-function appendToMessage(text, type) {
-    if (!text) return;
+function updateAgentMessage(type, data) {
     const conversation = document.getElementById("conversation");
     if (!conversation) return;
 
-    if (!currentMessageDiv || currentMessageType !== type) {
-        addMessage("", type);
-        currentMessageDiv = conversation.lastElementChild;
-        currentMessageType = type;
+    // Create container if not exists
+    if (!activeAgentMessage) {
+        createAgentMessageContainer();
     }
-    
-    const contentDiv = currentMessageDiv.querySelector(".content");
-    
-    if (type === "jarvis") {
-        if (!contentDiv.dataset.raw) contentDiv.dataset.raw = "";
-        contentDiv.dataset.raw += text;
+
+    if (type === "text") {
+        activeAgentMessage.contentRaw += data;
         if (window.marked) {
-            contentDiv.innerHTML = marked.parse(contentDiv.dataset.raw);
+            activeAgentMessage.contentDiv.innerHTML = marked.parse(activeAgentMessage.contentRaw);
         } else {
-            contentDiv.textContent = contentDiv.dataset.raw;
+            activeAgentMessage.contentDiv.textContent = activeAgentMessage.contentRaw;
         }
-    } else {
-        contentDiv.textContent += text;
+        updateAgentStatus("Speaking...", "mic");
+        activeAgentMessage.contentDiv.style.display = "block";
+    } else if (type === "thought") {
+        let step = activeAgentMessage.steps.find(s => s.type === "thinking" && !s.completed);
+        if (!step) {
+            step = createTraceStep("Thinking...", "brain");
+            step.type = "thinking";
+            activeAgentMessage.steps.push(step);
+            activeAgentMessage.traceDiv.appendChild(step.div);
+        }
+        step.contentDiv.textContent += data;
+        updateAgentStatus("Thinking...", "brain");
+    } else if (type === "tool_call") {
+        // Mark previous thinking as done
+        const thinkingStep = activeAgentMessage.steps.find(s => s.type === "thinking" && !s.completed);
+        if (thinkingStep) {
+            thinkingStep.completed = true;
+        }
+
+        const args = data.args ? JSON.stringify(data.args, null, 2) : "{}";
+        const step = createTraceStep(`Calling ${data.tool}...`, "tool");
+        step.type = "tool";
+        step.toolName = data.tool;
+        step.contentDiv.textContent = `Args: ${args}`;
+        step.div.classList.add("tool-call");
+        
+        activeAgentMessage.steps.push(step);
+        activeAgentMessage.traceDiv.appendChild(step.div);
+        updateAgentStatus(`Using ${data.tool}...`, "tool");
+    } else if (type === "tool_result") {
+        // Find the last tool step
+        const step = activeAgentMessage.steps.slice().reverse().find(s => s.type === "tool" && !s.completed);
+        if (step) {
+            step.completed = true;
+            const content = data.content || "";
+            step.contentDiv.textContent += `\n\nResult:\n${content}`;
+            
+            // Check for error
+            if (content.toLowerCase().includes("error")) {
+                step.div.classList.add("error");
+                step.headerText.textContent = `Error: ${step.toolName}`;
+                updateAgentStatus(`Error in ${step.toolName}`, "alert-triangle");
+            } else {
+                step.div.classList.add("success");
+                step.headerText.textContent = `Finished: ${step.toolName}`;
+                updateAgentStatus(`Finished ${step.toolName}`, "check");
+            }
+        }
     }
     
     conversation.scrollTop = conversation.scrollHeight;
+}
+
+function createAgentMessageContainer() {
+    const conversation = document.getElementById("conversation");
+    const container = document.createElement("div");
+    container.className = "agent-message-container";
+    
+    // Status Bar
+    const statusDiv = document.createElement("div");
+    statusDiv.className = "agent-status expanded"; // Expanded by default
+    statusDiv.innerHTML = `
+        <div class="icon"></div>
+        <div class="text">Processing...</div>
+        <div class="toggle-icon">▼</div>
+    `;
+    statusDiv.onclick = () => {
+        traceDiv.classList.toggle("visible");
+        statusDiv.classList.toggle("expanded");
+    };
+    
+    // Trace Area
+    const traceDiv = document.createElement("div");
+    traceDiv.className = "agent-trace visible"; // Visible by default
+    
+    // Content Area
+    const contentDiv = document.createElement("div");
+    contentDiv.className = "agent-content";
+    contentDiv.style.display = "none"; // Hide initially
+    
+    container.appendChild(statusDiv);
+    container.appendChild(traceDiv);
+    container.appendChild(contentDiv);
+    conversation.appendChild(container);
+    
+    activeAgentMessage = {
+        container,
+        statusDiv,
+        traceDiv,
+        contentDiv,
+        contentRaw: "",
+        steps: []
+    };
+}
+
+function createTraceStep(title, iconType) {
+    const div = document.createElement("div");
+    div.className = "trace-step";
+    
+    const header = document.createElement("div");
+    header.className = "trace-step-header";
+    header.innerHTML = `<span>${getIconSvg(iconType)}</span> <span>${title}</span>`;
+    
+    const content = document.createElement("div");
+    content.className = "trace-step-content";
+    
+    div.appendChild(header);
+    div.appendChild(content);
+    
+    return {
+        div,
+        headerText: header.querySelector("span:last-child"),
+        contentDiv: content,
+        completed: false
+    };
+}
+
+function updateAgentStatus(text, iconType) {
+    if (!activeAgentMessage) return;
+    const iconDiv = activeAgentMessage.statusDiv.querySelector(".icon");
+    const textDiv = activeAgentMessage.statusDiv.querySelector(".text");
+    
+    iconDiv.innerHTML = getIconSvg(iconType);
+    textDiv.textContent = text;
+}
+
+function getIconSvg(type) {
+    // Normalize type to lowercase for matching
+    const t = type.toLowerCase();
+    
+    // Generic Icons
+    if (t === "brain" || t === "thinking") return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>`;
+    if (t === "check" || t === "success") return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+    if (t === "alert-triangle" || t === "error") return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
+    if (t === "mic") return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`;
+    
+    // Tool Specific Icons
+    if (t.includes("spotify") || t.includes("music")) return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>`;
+    if (t.includes("weather") || t.includes("temperature")) return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+    if (t.includes("alexa") || t.includes("home") || t.includes("light")) return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`;
+    if (t.includes("search") || t.includes("web")) return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
+    if (t.includes("memory") || t.includes("remember") || t.includes("retrieve")) return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s 9-1.34 9-3V5"></path></svg>`;
+    if (t.includes("volume") || t.includes("system")) return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
+    
+    // Default Tool Icon
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`;
 }
 
 function addMessage(text, sender) {
@@ -537,6 +678,23 @@ function formatToolName(name) {
     return name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 }
 
+function sendMessage() {
+    const input = document.getElementById("text-input");
+    const text = input.value.trim();
+    
+    if (text && !isGenerating) {
+        addMessage(text, "user");
+        ws.send(JSON.stringify({
+            type: "text",
+            text: text,
+            thinking: thinkingEnabled
+        }));
+        input.value = "";
+        setGenerating(true);
+        activeAgentMessage = null; // Reset for new turn
+    }
+}
+
 // Initialize - Main Entry Point
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
@@ -566,29 +724,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Event Listeners
     if (sendButton) {
-        sendButton.addEventListener("click", () => {
-            const text = textInput.value.trim();
-            if (text) {
-                ws.send(JSON.stringify({
-                    type: "text",
-                    text: text,
-                    language: languageSelector ? languageSelector.value : 'en'
-                }));
-                
-                addMessage(text, "user");
-                textInput.value = "";
-                setGenerating(true);
-            }
-        });
+        sendButton.addEventListener("click", sendMessage);
     }
 
     if (textInput) {
         textInput.addEventListener("keypress", (e) => {
             if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                if (sendButton) sendButton.click();
+                sendMessage();
             }
         });
+    }
+
+    // Thinking Toggle
+    const thinkingBtn = document.getElementById("thinking-toggle");
+    if (thinkingBtn) {
+        thinkingBtn.onclick = () => {
+            thinkingEnabled = !thinkingEnabled;
+            thinkingBtn.classList.toggle("active", thinkingEnabled);
+        };
     }
 
     if (micButton) {

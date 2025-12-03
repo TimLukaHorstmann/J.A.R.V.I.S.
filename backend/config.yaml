@@ -16,10 +16,10 @@ home_assistant:
 llm:
   base_url: http://localhost:8000/v1
   context_window: 8192
-  filename: Qwen3-4B-Instruct-2507-abliterated-GGUF/Qwen3-4B-Instruct-2507-abliterated.Q4_K_M.gguf
+  filename: mlabonne_Qwen3-4B-abliterated-Q4_K_M.gguf
   local_dir: pretrained_models/llm
-  model_alias: gpt-3.5-turbo
-  repo_id: prithivMLmods/Qwen3-4B-2507-abliterated-GGUF
+  model_alias: Qwen3
+  repo_id: bartowski/mlabonne_Qwen3-4B-abliterated-GGUF
 mcp:
   servers:
     brave_search:

@@ -172,7 +172,7 @@ class JarvisAgent:
         try:
             async for event in self.app.astream_events(inputs, version="v1"):
                 kind = event["event"]
-                logger.info(f"Event: {kind}") # Debug log
+                # logger.info(f"Event: {kind}") # Debug log
                 
                 if kind == "on_chat_model_stream":
                     chunk = event["data"]["chunk"].content

@@ -142,7 +142,7 @@ async def delete_memory(key: str):
     return {"status": "ok"}
 
 # ─── WebSocket Endpoint ───────────────────────────────────────────────────────
-async def process_conversation(websocket: WebSocket, user_text: str, session_id: str):
+async def process_conversation(websocket: WebSocket, user_text: str, session_id: str, thinking_enabled: bool = True):
     try:
         # Load history
         messages = db_service.get_session_messages(session_id)
@@ -154,9 +154,15 @@ async def process_conversation(websocket: WebSocket, user_text: str, session_id:
         # Save user message
         db_service.add_message(session_id, "user", user_text)
 
+        # Prepare prompt (handle thinking toggle)
+        prompt_text = user_text
+        if not thinking_enabled:
+            prompt_text = f"/nothink {user_text}"
+
         full_response_text = ""
+        tts_text = ""
         
-        async for event in agent.process_message(user_text, chat_history):
+        async for event in agent.process_message(prompt_text, chat_history):
             if event["type"] == "thought":
                 chunk = event.get("chunk", event.get("content"))
                 await websocket.send_json({"type": "thought", "chunk": chunk})
@@ -164,10 +170,13 @@ async def process_conversation(websocket: WebSocket, user_text: str, session_id:
             elif event["type"] == "response":
                 chunk = event.get("chunk", event.get("content"))
                 full_response_text += chunk
+                tts_text += chunk
                 await websocket.send_json({"type": "text", "chunk": chunk})
                 
             elif event["type"] == "tool_call":
                 logger.info(f"Calling tool: {event['tool']} with {event['args']}")
+                # Reset tts_text so we only TTS the final answer after all tools are done
+                tts_text = ""
                 await websocket.send_json(event)
                 
             elif event["type"] == "tool_result":
@@ -182,8 +191,8 @@ async def process_conversation(websocket: WebSocket, user_text: str, session_id:
 
         # 3. Speak (TTS)
         tts_enabled = config.get("application", {}).get("tts_enabled", True)
-        if full_response_text and tts_enabled:
-            audio_out = audio_service.synthesize(full_response_text)
+        if tts_text and tts_enabled:
+            audio_out = audio_service.synthesize(tts_text)
             if audio_out:
                 await websocket.send_bytes(audio_out)
                 
@@ -214,6 +223,7 @@ async def websocket_endpoint(websocket: WebSocket):
             
             user_text = ""
             is_stop = False
+            thinking_enabled = True
             
             if "bytes" in message:
                 # Audio received
@@ -244,6 +254,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         continue
                     elif msg_type == "text":
                         user_text = data.get("text") or data.get("data")
+                        thinking_enabled = data.get("thinking", True)
                 except Exception as e:
                     logger.error(f"Error parsing text message: {e}")
             
@@ -267,7 +278,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     # Notify frontend to refresh list
                     await websocket.send_json({"type": "session_updated"})
 
-                processing_task = asyncio.create_task(process_conversation(websocket, user_text, session_id))
+                processing_task = asyncio.create_task(process_conversation(websocket, user_text, session_id, thinking_enabled))
 
     except WebSocketDisconnect:
         if processing_task: processing_task.cancel()
