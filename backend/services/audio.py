@@ -4,6 +4,8 @@ import io
 import time
 import numpy as np
 import soundfile as sf
+import subprocess
+import tempfile
 from faster_whisper import WhisperModel
 from kokoro import KPipeline
 import torch
@@ -93,15 +95,43 @@ class AudioService:
         """Transcribes raw audio bytes to text."""
         start = time.time()
         try:
-            # Convert bytes to float32 numpy array
-            # Assuming 16kHz mono input from frontend
-            audio_data, _ = sf.read(io.BytesIO(audio_buffer), dtype='float32')
+            # Use ffmpeg to convert input bytes to a temporary WAV file
+            # This handles various container formats (webm, ogg, mp4) sent by browsers
+            with tempfile.NamedTemporaryFile(delete=False) as tmp_in:
+                tmp_in.write(audio_buffer)
+                tmp_in_name = tmp_in.name
             
-            segments, info = self.asr_model.transcribe(audio_data, beam_size=5)
-            text = " ".join([segment.text for segment in segments]).strip()
-            
-            logger.info(f"Transcribed in {time.time() - start:.2f}s: '{text}'")
-            return text
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_wav:
+                tmp_wav_name = tmp_wav.name
+
+            try:
+                # Convert to 16kHz mono wav
+                subprocess.run([
+                    "ffmpeg", "-y", "-v", "error",
+                    "-i", tmp_in_name,
+                    "-ar", "16000",
+                    "-ac", "1",
+                    "-f", "wav",
+                    tmp_wav_name
+                ], check=True)
+                
+                # Transcribe directly from the WAV file
+                segments, info = self.asr_model.transcribe(tmp_wav_name, beam_size=5)
+                text = " ".join([segment.text for segment in segments]).strip()
+                
+                logger.info(f"Transcribed in {time.time() - start:.2f}s: '{text}'")
+                return text
+                
+            finally:
+                # Cleanup temp files
+                if os.path.exists(tmp_in_name):
+                    os.unlink(tmp_in_name)
+                if os.path.exists(tmp_wav_name):
+                    os.unlink(tmp_wav_name)
+                    
+        except subprocess.CalledProcessError as e:
+            logger.error(f"FFmpeg conversion failed: {e}")
+            return ""
         except Exception as e:
             logger.error(f"Transcription failed: {e}")
             return ""

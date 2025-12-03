@@ -219,6 +219,7 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.send_json({"type": "session_init", "session_id": session_id})
     
     processing_task = None
+    current_thinking_mode = True
     
     try:
         while True:
@@ -226,7 +227,6 @@ async def websocket_endpoint(websocket: WebSocket):
             
             user_text = ""
             is_stop = False
-            thinking_enabled = True
             
             if "bytes" in message:
                 # Audio received
@@ -243,7 +243,10 @@ async def websocket_endpoint(websocket: WebSocket):
                     data = json.loads(message["text"])
                     msg_type = data.get("type")
                     
-                    if msg_type == "stop":
+                    if msg_type == "config":
+                        current_thinking_mode = data.get("thinking", True)
+                        continue
+                    elif msg_type == "stop":
                         is_stop = True
                     elif msg_type == "load_session":
                         session_id = data.get("session_id")
@@ -257,7 +260,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         continue
                     elif msg_type == "text":
                         user_text = data.get("text") or data.get("data")
-                        thinking_enabled = data.get("thinking", True)
+                        current_thinking_mode = data.get("thinking", True)
                 except Exception as e:
                     logger.error(f"Error parsing text message: {e}")
             
@@ -281,7 +284,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     # Notify frontend to refresh list
                     await websocket.send_json({"type": "session_updated"})
 
-                processing_task = asyncio.create_task(process_conversation(websocket, user_text, session_id, thinking_enabled))
+                processing_task = asyncio.create_task(process_conversation(websocket, user_text, session_id, current_thinking_mode))
 
     except WebSocketDisconnect:
         if processing_task: processing_task.cancel()

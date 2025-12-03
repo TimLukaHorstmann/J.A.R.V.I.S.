@@ -978,6 +978,25 @@ textarea {
     margin-left: 1rem;
 }
 
+.tool-text {
+    margin-left: 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.tool-title {
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.tool-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 0.15rem;
+    max-width: 560px;
+}
+
 .setting-input {
     margin-bottom: 1rem;
     display: flex;

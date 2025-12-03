@@ -12,6 +12,12 @@ let currentSessionId = null;
 let isGenerating = false;
 let activeAgentMessage = null;
 
+// Silence Detection State
+let audioContext = null;
+let analyser = null;
+let microphone = null;
+let javascriptNode = null;
+
 // WebSocket Events
 ws.onopen = () => {
     updateStatus("connected");
@@ -435,14 +441,77 @@ async function startRecording() {
         mediaRecorder = new MediaRecorder(stream);
         audioChunks = [];
 
+        // Silence Detection Setup
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        microphone = audioContext.createMediaStreamSource(stream);
+        javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
+
+        analyser.smoothingTimeConstant = 0.8;
+        analyser.fftSize = 1024;
+
+        microphone.connect(analyser);
+        analyser.connect(javascriptNode);
+        javascriptNode.connect(audioContext.destination);
+
+        let silenceStart = Date.now();
+        const silenceThreshold = 0.02; // Sensitivity
+        const silenceDuration = 2000; // 2 seconds of silence to stop
+
+        javascriptNode.onaudioprocess = function() {
+            const array = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(array);
+            let values = 0;
+            const length = array.length;
+            for (let i = 0; i < length; i++) {
+                values += array[i];
+            }
+            const average = values / length;
+            const volume = average / 255; 
+
+            if (volume < silenceThreshold) {
+                if (Date.now() - silenceStart > silenceDuration) {
+                    console.log("Silence detected, stopping recording");
+                    stopRecording();
+                }
+            } else {
+                silenceStart = Date.now();
+            }
+        };
+
         mediaRecorder.ondataavailable = (event) => {
             audioChunks.push(event.data);
         };
 
         mediaRecorder.onstop = () => {
             const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            
+            // Send configuration first
+            ws.send(JSON.stringify({
+                type: "config",
+                thinking: thinkingEnabled
+            }));
+            
             ws.send(audioBlob);
             stream.getTracks().forEach(track => track.stop());
+            
+            // Cleanup Audio Context
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+            if (javascriptNode) {
+                javascriptNode.disconnect();
+                javascriptNode = null;
+            }
+            if (analyser) {
+                analyser.disconnect();
+                analyser = null;
+            }
+            if (microphone) {
+                microphone.disconnect();
+                microphone = null;
+            }
         };
 
         mediaRecorder.start();
@@ -674,6 +743,74 @@ function renderTools(toolsConfig) {
             </label>
             <span>${formatToolName(toolName)}</span>
         `;
+        toolsList.appendChild(div);
+    }
+}
+
+// Metadata for known tools to show helpful descriptions in the settings UI
+const toolMetadata = {
+    spotify: {
+        title: 'Spotify',
+        desc: 'Connects to Spotify to control playback, search tracks and play music.'
+    },
+    weather: {
+        title: 'Weather',
+        desc: 'Fetches current weather and forecasts for locations.'
+    },
+    home_assistant: {
+        title: 'Home Assistant',
+        desc: 'Integrates with Home Assistant to control smart devices and read sensors.'
+    },
+    llm: {
+        title: 'LLM',
+        desc: 'Local language model backend used to generate responses and reasoning.'
+    },
+    mcp: {
+        title: 'MCP',
+        desc: 'Message / control plane for routing tool calls and agent events.'
+    },
+    openwb: {
+        title: 'OpenWB',
+        desc: 'Controls OpenWB chargers and reads charging state for EV charging management.'
+    },
+    system: {
+        title: 'System',
+        desc: 'Run system-level commands and query system status (volume, uptime, etc.).'
+    },
+    audio: {
+        title: 'Audio',
+        desc: 'Handles audio input/output, recording, playback and TTS hooks.'
+    },
+    memory: {
+        title: 'Memory',
+        desc: 'Long-term memory storage for remembering user preferences and facts.'
+    }
+};
+
+function renderTools(toolsConfig) {
+    const toolsList = document.getElementById("tools-list");
+    if (!toolsList) return;
+
+    toolsList.innerHTML = "";
+    const sortedKeys = Object.keys(toolsConfig).sort();
+
+    for (const toolName of sortedKeys) {
+        const enabled = toolsConfig[toolName];
+        const meta = toolMetadata[toolName] || { title: formatToolName(toolName), desc: 'No description available.' };
+
+        const div = document.createElement("div");
+        div.className = "setting-item";
+        div.innerHTML = `
+            <label class="switch">
+                <input type="checkbox" id="tool-${toolName}" ${enabled ? "checked" : ""}>
+                <span class="slider round"></span>
+            </label>
+            <div class="tool-text">
+                <div class="tool-title">${meta.title}</div>
+                <div class="tool-desc">${meta.desc}</div>
+            </div>
+        `;
+
         toolsList.appendChild(div);
     }
 }
