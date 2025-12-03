@@ -22,7 +22,18 @@ from database import DatabaseService
 spotify_service = None
 system_service = None
 ha_service = None
+openwb_service = None
 db_service = DatabaseService() # Initialize DB service for memory tools
+
+@tool
+def get_wallbox_status() -> str:
+    """
+    Get the current status of the OpenWB wallbox, including PV power, house consumption, and charging status.
+    """
+    if openwb_service:
+        status = openwb_service.get_status()
+        return json.dumps(status, indent=2)
+    return "OpenWB service is not initialized or disabled."
 
 @tool
 def get_current_temperature(location: str = None, coordinates: dict = None) -> float:
@@ -549,16 +560,20 @@ def retrieve_info(key: str) -> str:
     except Exception as e:
         return f"Error retrieving memory: {e}"
 
-def get_local_tools(config):
+def get_local_tools(config, openwb_instance=None):
     """
     Initialize services and return a list of all local tools.
     """
-    global spotify_service, system_service, ha_service
+    global spotify_service, system_service, ha_service, openwb_service
     
     # Initialize services
     spotify_service = SpotifyService(config)
     system_service = SystemService()
     ha_service = HomeAssistantService(config)
+    
+    # OpenWB is passed in because it runs a background thread managed by app.py
+    if openwb_instance:
+        openwb_service = openwb_instance
     
     tools = []
     tools_config = config.get("tools", {})
@@ -594,6 +609,9 @@ def get_local_tools(config):
 
     if tools_config.get("home_assistant", True):
         tools.extend([alexa_list_devices, alexa_send_command, alexa_play_sound])
+
+    if tools_config.get("openwb", False):
+        tools.append(get_wallbox_status)
 
     # Memory is always enabled as it's core
     tools.extend([remember_info, retrieve_info])

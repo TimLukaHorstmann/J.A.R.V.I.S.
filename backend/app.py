@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from services.audio import AudioService
 from services.llm import LLMService
 from services.mcp import MCPService
+from services.openwb import OpenWBService
 from agent.graph import JarvisAgent
 from database import DatabaseService
 from tools import get_local_tools
@@ -50,6 +51,7 @@ app.add_middleware(
 audio_service = AudioService(config)
 llm_service = LLMService(config)
 mcp_service = MCPService(config)
+openwb_service = OpenWBService(config)
 db_service = DatabaseService()
 agent = None
 
@@ -57,7 +59,7 @@ agent = None
 async def startup_event():
     global agent
     await mcp_service.initialize()
-    local_tools = get_local_tools(config)
+    local_tools = get_local_tools(config, openwb_service)
     agent = JarvisAgent(llm_service, mcp_service, local_tools)
     logger.info("✅ JARVIS 2.0 Backend Ready")
 

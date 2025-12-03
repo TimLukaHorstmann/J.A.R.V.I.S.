@@ -34,6 +34,7 @@ dependencies = [
     "chatterbox-tts",
     "spotipy",
     "python-dotenv",
+    "paho-mqtt>=2.1.0",
 ]
 
 [build-system]
