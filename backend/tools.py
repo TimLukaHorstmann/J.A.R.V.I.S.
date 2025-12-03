@@ -15,11 +15,13 @@ import trafilatura
 from langchain_core.tools import tool
 from services.spotify import SpotifyService
 from services.system import SystemService
+from services.home_assistant import HomeAssistantService
 from database import DatabaseService
 
 # Global service instances (initialized in get_local_tools)
 spotify_service = None
 system_service = None
+ha_service = None
 db_service = DatabaseService() # Initialize DB service for memory tools
 
 @tool
@@ -472,6 +474,49 @@ def system_battery() -> str:
         return system_service.get_battery_status()
     return "System service is not initialized."
 
+# --- Home Assistant Tools ---
+@tool
+def alexa_list_devices() -> str:
+    """
+    List all available Alexa devices with their names and IDs.
+    """
+    if ha_service:
+        devices = ha_service.get_alexa_devices_safe()
+        if not devices:
+            return "No Alexa devices found or Home Assistant is not connected."
+        
+        result = "Available Alexa Devices:\n"
+        for name, dev_id in devices.items():
+            result += f"- {name}: {dev_id}\n"
+        return result
+    return "Home Assistant service is not initialized."
+
+@tool
+def alexa_send_command(device_name_or_id: str, command: str) -> str:
+    """
+    Send a text command to an Alexa device. Use this to play music on a SPECIFIC Alexa device.
+    
+    Args:
+        device_name_or_id: The name or ID of the device (e.g. "Kitchen Echo", "James").
+        command: The text command to send (e.g., "play BBC Radio 6", "play Ophelia on Spotify", "turn on the lights").
+    """
+    if ha_service:
+        return ha_service.send_text_command(device_name_or_id, command)
+    return "Home Assistant service is not initialized."
+
+@tool
+def alexa_play_sound(device_name_or_id: str, sound: str) -> str:
+    """
+    Play a built-in sound on an Alexa device.
+    
+    Args:
+        device_name_or_id: The name or ID of the device.
+        sound: The name of the sound to play (e.g., "amzn_sfx_doorbell_chime_01").
+    """
+    if ha_service:
+        return ha_service.play_sound(device_name_or_id, sound)
+    return "Home Assistant service is not initialized."
+
 # --- Memory Tools ---
 @tool
 def remember_info(key: str, value: str) -> str:
@@ -508,11 +553,12 @@ def get_local_tools(config):
     """
     Initialize services and return a list of all local tools.
     """
-    global spotify_service, system_service
+    global spotify_service, system_service, ha_service
     
     # Initialize services
     spotify_service = SpotifyService(config)
     system_service = SystemService()
+    ha_service = HomeAssistantService(config)
     
     tools = []
     tools_config = config.get("tools", {})
@@ -545,6 +591,9 @@ def get_local_tools(config):
     # Spotify is handled by its own config section but we can check here too
     if tools_config.get("spotify", False):
         tools.extend([spotify_play, spotify_pause, spotify_next])
+
+    if tools_config.get("home_assistant", True):
+        tools.extend([alexa_list_devices, alexa_send_command, alexa_play_sound])
 
     # Memory is always enabled as it's core
     tools.extend([remember_info, retrieve_info])

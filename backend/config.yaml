@@ -9,6 +9,10 @@ asr:
     compute_type: int8
     device: cpu
     model_size: small
+home_assistant:
+  enabled: true
+  token: ''
+  url: http://localhost:8123
 llm:
   base_url: http://localhost:8000/v1
   context_window: 8192
@@ -32,13 +36,10 @@ mcp:
       url: http://127.0.0.1:4004/messages
 spotify:
   redirect_uri: http://127.0.0.1:8888/callback
-home_assistant:
-  enabled: true
-  url: http://localhost:8123
-  token: ""
 tools:
   calculator: true
   currency: true
+  home_assistant: true
   news: true
   spotify: true
   system: true
@@ -46,7 +47,6 @@ tools:
   weather: true
   web_search: true
   wikipedia: true
-  home_assistant: true
 tts:
   chatterbox:
     audio_prompt_path: voice_samples/jarvis_sample.wav
