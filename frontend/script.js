@@ -40,6 +40,10 @@ ws.onmessage = async (event) => {
     // Handle binary audio data
     if (event.data instanceof Blob) {
         playAudio(event.data);
+        if (window.jarvisVisualizer) {
+            window.jarvisVisualizer.setSpeaking(true);
+            // Reset after audio duration (approximate or listen to 'ended' event in playAudio)
+        }
         return;
     }
 
@@ -266,8 +270,15 @@ function playAudio(blob) {
     const audioUrl = URL.createObjectURL(blob);
     const audio = new Audio(audioUrl);
     
+    if (window.jarvisVisualizer) {
+        window.jarvisVisualizer.setSpeaking(true);
+    }
+
     audio.onended = () => {
         URL.revokeObjectURL(audioUrl);
+        if (window.jarvisVisualizer) {
+            window.jarvisVisualizer.setSpeaking(false);
+        }
         if (wakeWordEnabled) {
             startWakeWordDetection();
         }

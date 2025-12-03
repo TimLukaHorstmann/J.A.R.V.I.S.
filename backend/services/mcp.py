@@ -1,4 +1,5 @@
 import logging
+import os
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_mcp_adapters.tools import load_mcp_tools
 from contextlib import AsyncExitStack
@@ -15,7 +16,37 @@ class MCPService:
     async def initialize(self):
         """Connects to MCP servers and loads tools."""
         # Define server connections from config
-        server_map = self.config.get("mcp", {}).get("servers", {})
+        server_map = self.config.get("mcp", {}).get("servers", {}).copy()
+        
+        # Add Home Assistant MCP if enabled
+        ha_config = self.config.get("home_assistant", {})
+        # Check env vars first, then config
+        ha_url = os.getenv("HASS_URL") or ha_config.get("url")
+        ha_token = os.getenv("HASS_TOKEN") or ha_config.get("token")
+        
+        # Determine if enabled: explicit config OR presence of credentials
+        ha_enabled = ha_config.get("enabled", False) or (ha_url and ha_token)
+        
+        if ha_enabled and ha_url and ha_token:
+            # Ensure URL ends with /api/mcp for the MCP endpoint
+            # If the user provided the base URL (e.g. http://localhost:8123), append /api/mcp
+            if not ha_url.endswith("/api/mcp"):
+                # Strip trailing slash if present
+                base_url = ha_url.rstrip("/")
+                mcp_url = f"{base_url}/api/mcp"
+            else:
+                mcp_url = ha_url
+                
+            logger.info(f"Adding Home Assistant MCP server at {mcp_url}")
+            # Use StreamableHttpConnection configuration for Home Assistant
+            server_map["home_assistant"] = {
+                "transport": "streamable_http",
+                "url": mcp_url,
+                "headers": {
+                    "Authorization": f"Bearer {ha_token}",
+                    "Content-Type": "application/json"
+                }
+            }
         
         if not server_map:
             logger.warning("No MCP servers configured.")

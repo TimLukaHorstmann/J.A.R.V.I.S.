@@ -8,6 +8,7 @@ from langgraph.prebuilt import ToolNode
 from langchain_mcp_adapters.tools import load_mcp_tools
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnableConfig
+from agent.prompts import SYSTEM_PROMPT
 
 logger = logging.getLogger("jarvis.agent")
 
@@ -55,11 +56,7 @@ class JarvisAgent:
         
         self.app = workflow.compile()
         
-        self.system_prompt = """You are JARVIS, a highly advanced and helpful AI assistant.
-        You have access to various tools to help the user.
-        Always be concise, polite, and efficient.
-        If you use a tool, interpret the results for the user naturally.
-        """
+        self.system_prompt = SYSTEM_PROMPT
 
     async def run_tools(self, state: AgentState):
         messages = state["messages"]

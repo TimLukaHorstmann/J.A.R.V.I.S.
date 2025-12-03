@@ -15,10 +15,14 @@ import trafilatura
 from langchain_core.tools import tool
 from services.spotify import SpotifyService
 from services.system import SystemService
+from services.home_assistant import HomeAssistantService
+from database import DatabaseService
 
 # Global service instances (initialized in get_local_tools)
 spotify_service = None
 system_service = None
+hass_service = None
+db_service = DatabaseService() # Initialize DB service for memory tools
 
 @tool
 def get_current_temperature(location: str = None, coordinates: dict = None) -> float:
@@ -470,15 +474,90 @@ def system_battery() -> str:
         return system_service.get_battery_status()
     return "System service is not initialized."
 
+# --- Memory Tools ---
+@tool
+def remember_info(key: str, value: str) -> str:
+    """
+    Store a piece of information in long-term memory.
+    
+    Args:
+        key: A unique identifier or category for the information (e.g., "user_name", "favorite_color", "project_alpha_details").
+        value: The information to store.
+    """
+    try:
+        db_service.add_memory(key, value)
+        return f"Stored information for '{key}'."
+    except Exception as e:
+        return f"Error storing memory: {e}"
+
+@tool
+def retrieve_info(key: str) -> str:
+    """
+    Retrieve a piece of information from long-term memory.
+    
+    Args:
+        key: The identifier used to store the information.
+    """
+    try:
+        val = db_service.get_memory(key)
+        if val:
+            return f"Memory for '{key}': {val}"
+        return f"No memory found for '{key}'."
+    except Exception as e:
+        return f"Error retrieving memory: {e}"
+
+# --- Home Assistant Tools ---
+@tool
+def ha_turn_on(entity_id: str) -> str:
+    """
+    Turn on a device in Home Assistant.
+    
+    Args:
+        entity_id: The entity ID (e.g., "light.living_room", "switch.plug_1").
+    """
+    if hass_service:
+        return hass_service.turn_on(entity_id)
+    return "Home Assistant service is not initialized."
+
+@tool
+def ha_turn_off(entity_id: str) -> str:
+    """
+    Turn off a device in Home Assistant.
+    
+    Args:
+        entity_id: The entity ID (e.g., "light.living_room", "switch.plug_1").
+    """
+    if hass_service:
+        return hass_service.turn_off(entity_id)
+    return "Home Assistant service is not initialized."
+
+@tool
+def ha_get_state(entity_id: str) -> str:
+    """
+    Get the state of a device in Home Assistant.
+    
+    Args:
+        entity_id: The entity ID.
+    """
+    if hass_service:
+        res = hass_service.get_state(entity_id)
+        if isinstance(res, dict):
+            state = res.get("state")
+            attrs = res.get("attributes", {})
+            return f"State: {state}, Attributes: {attrs}"
+        return str(res)
+    return "Home Assistant service is not initialized."
+
 def get_local_tools(config):
     """
     Initialize services and return a list of all local tools.
     """
-    global spotify_service, system_service
+    global spotify_service, system_service, hass_service
     
     # Initialize services
     spotify_service = SpotifyService(config)
     system_service = SystemService()
+    hass_service = HomeAssistantService(config)
     
     tools = []
     tools_config = config.get("tools", {})
@@ -511,5 +590,11 @@ def get_local_tools(config):
     # Spotify is handled by its own config section but we can check here too
     if tools_config.get("spotify", False):
         tools.extend([spotify_play, spotify_pause, spotify_next])
+
+    # Memory is always enabled as it's core
+    tools.extend([remember_info, retrieve_info])
+
+    if tools_config.get("home_assistant", False):
+        tools.extend([ha_turn_on, ha_turn_off, ha_get_state])
         
     return tools

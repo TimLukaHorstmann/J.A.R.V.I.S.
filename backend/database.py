@@ -36,6 +36,15 @@ class DatabaseService:
             )
         ''')
         
+        # Create memory table
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS memory (
+                key TEXT PRIMARY KEY,
+                value TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
         conn.commit()
         conn.close()
 
@@ -84,6 +93,40 @@ class DatabaseService:
         c.execute("UPDATE sessions SET title = ? WHERE id = ?", (title, session_id))
         conn.commit()
         conn.close()
+
+    def delete_session(self, session_id: str):
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
+        c.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+        conn.commit()
+        conn.close()
+
+    def add_memory(self, key: str, value: str):
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute(
+            "INSERT OR REPLACE INTO memory (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
+            (key, value)
+        )
+        conn.commit()
+        conn.close()
+
+    def get_memory(self, key: str) -> Optional[str]:
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute("SELECT value FROM memory WHERE key = ?", (key,))
+        row = c.fetchone()
+        conn.close()
+        return row[0] if row else None
+    
+    def get_all_memories(self) -> Dict[str, str]:
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute("SELECT key, value FROM memory")
+        rows = c.fetchall()
+        conn.close()
+        return {row[0]: row[1] for row in rows}
 
     def delete_session(self, session_id: str):
         conn = sqlite3.connect(self.db_path)

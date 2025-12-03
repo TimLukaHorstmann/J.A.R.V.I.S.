@@ -16,3 +16,4 @@ backend/jarvis.db
 backend/.cache
 
 backend/uv.lock
+backend/agent/prompts.py
