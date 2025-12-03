@@ -6,6 +6,7 @@ let mediaRecorder = null;
 let audioChunks = [];
 let wakeWordEnabled = true;
 let thinkingEnabled = true;
+let ttsEnabled = true;
 let wakeWordRecognition = null;
 let currentSessionId = null;
 let isGenerating = false;
@@ -130,6 +131,7 @@ function updateAgentMessage(type, data) {
         activeAgentMessage.contentRaw += data;
         if (window.marked) {
             activeAgentMessage.contentDiv.innerHTML = marked.parse(activeAgentMessage.contentRaw);
+            renderMath(activeAgentMessage.contentDiv);
         } else {
             activeAgentMessage.contentDiv.textContent = activeAgentMessage.contentRaw;
         }
@@ -298,6 +300,7 @@ function addMessage(text, sender) {
     if ((sender === "jarvis" || sender === "assistant") && window.marked) {
         contentDiv.dataset.raw = safeText;
         contentDiv.innerHTML = marked.parse(safeText);
+        renderMath(contentDiv);
     } else {
         contentDiv.textContent = safeText;
     }
@@ -542,10 +545,12 @@ async function loadSettings() {
             renderTools(config.tools);
         }
         
-        const ttsToggle = document.getElementById("app-tts_enabled");
-        if (ttsToggle) {
-            const enabled = config.application && config.application.tts_enabled;
-            ttsToggle.checked = enabled !== undefined ? enabled : true;
+        // Update TTS state
+        const enabled = config.application && config.application.tts_enabled;
+        ttsEnabled = enabled !== undefined ? enabled : true;
+        const ttsBtn = document.getElementById("tts-toggle");
+        if (ttsBtn) {
+            ttsBtn.classList.toggle("active", ttsEnabled);
         }
     } catch (error) {
         console.error("Error loading settings:", error);
@@ -554,7 +559,6 @@ async function loadSettings() {
 
 async function saveSettings() {
     const toolsList = document.getElementById("tools-list");
-    const ttsToggle = document.getElementById("app-tts_enabled");
     
     const toolsConfig = {};
     if (toolsList) {
@@ -568,7 +572,7 @@ async function saveSettings() {
     const newSettings = {
         tools: toolsConfig,
         application: {
-            tts_enabled: ttsToggle ? ttsToggle.checked : true
+            tts_enabled: ttsEnabled
         }
     };
     
@@ -745,6 +749,27 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    // TTS Toggle
+    const ttsBtn = document.getElementById("tts-toggle");
+    if (ttsBtn) {
+        ttsBtn.onclick = async () => {
+            ttsEnabled = !ttsEnabled;
+            ttsBtn.classList.toggle("active", ttsEnabled);
+            // Save only TTS setting to avoid saving pending tool changes
+            try {
+                await fetch("/api/settings", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        application: { tts_enabled: ttsEnabled }
+                    })
+                });
+            } catch (e) {
+                console.error("Error updating TTS:", e);
+            }
+        };
+    }
+
     if (micButton) {
         micButton.addEventListener("click", () => {
             if (isRecording) {
@@ -863,3 +888,17 @@ document.addEventListener('DOMContentLoaded', () => {
     initWakeWordDetection();
     loadSettings();
 });
+
+function renderMath(element) {
+    if (window.renderMathInElement) {
+        renderMathInElement(element, {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false},
+                {left: '\\(', right: '\\)', display: false},
+                {left: '\\[', right: '\\]', display: true}
+            ],
+            throwOnError: false
+        });
+    }
+}

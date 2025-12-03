@@ -34,11 +34,11 @@ mcp:
     weather:
       transport: sse
       url: http://127.0.0.1:4004/messages
-spotify:
-  redirect_uri: http://127.0.0.1:8888/callback
 openwb:
   enabled: true
   ip: 192.168.1.68
+spotify:
+  redirect_uri: http://127.0.0.1:8888/callback
 tools:
   calculator: true
   currency: true

@@ -4,8 +4,8 @@ class JarvisVisualizer {
         this.ctx = this.canvas.getContext('2d');
         this.particles = [];
         this.numParticles = 100;
-        this.radius = 100;
-        this.baseRadius = 100;
+        this.radius = 200;
+        this.baseRadius = 200;
         this.centerX = 0;
         this.centerY = 0;
         this.angleX = 0;
@@ -13,6 +13,14 @@ class JarvisVisualizer {
         this.isSpeaking = false;
         this.amplitude = 0;
         this.targetAmplitude = 0;
+
+        // Load House Hologram Image
+        this.houseImage = new Image();
+        this.houseImage.src = 'assets/images/house_hologram3.png';
+        this.houseImageLoaded = false;
+        this.houseImage.onload = () => {
+            this.houseImageLoaded = true;
+        };
         
         this.resize();
         this.initParticles();
@@ -102,6 +110,34 @@ class JarvisVisualizer {
 
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Draw House Hologram
+        if (this.houseImageLoaded) {
+            this.ctx.save();
+            
+            // Scale image based on current sphere radius to make it "breathe" with the sphere
+            // The image should fit inside the sphere. 
+            // Original dimensions: 2135 x 1489 (Landscape)
+            const aspectRatio = 2135 / 1489;
+            
+            // Calculate dimensions to fit nicely inside the sphere
+            // We use the radius as a baseline. 
+            const drawWidth = this.radius * 1.8; 
+            const drawHeight = drawWidth / aspectRatio;
+            
+            const x = this.centerX - drawWidth / 2;
+            const y = this.centerY - drawHeight / 2;
+
+            // Holographic effect
+            this.ctx.globalAlpha = 0.8 + (this.amplitude * 0.2); // Pulse opacity with voice
+            this.ctx.shadowBlur = 20;
+            this.ctx.shadowColor = "rgba(0, 243, 255, 0.6)";
+            
+            // Draw the image
+            this.ctx.drawImage(this.houseImage, x, y, drawWidth, drawHeight);
+            
+            this.ctx.restore();
+        }
         
         // Draw connections
         this.ctx.strokeStyle = `rgba(0, 243, 255, ${0.1 + (this.amplitude * 0.2)})`;

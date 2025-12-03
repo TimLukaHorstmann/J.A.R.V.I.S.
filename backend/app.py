@@ -167,7 +167,8 @@ async def process_conversation(websocket: WebSocket, user_text: str, session_id:
         async for event in agent.process_message(prompt_text, chat_history):
             if event["type"] == "thought":
                 chunk = event.get("chunk", event.get("content"))
-                await websocket.send_json({"type": "thought", "chunk": chunk})
+                if chunk and chunk.strip():
+                    await websocket.send_json({"type": "thought", "chunk": chunk})
                 
             elif event["type"] == "response":
                 chunk = event.get("chunk", event.get("content"))

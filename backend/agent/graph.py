@@ -208,6 +208,18 @@ class JarvisAgent:
                                 break
                                 
                         elif state == "THINKING":
+                            # Safeguard: If we see a tool call start, force close thinking
+                            if "<tool_call>" in buffer:
+                                # If we have content before the tool call, yield it as thought
+                                pre, rest = buffer.split("<tool_call>", 1)
+                                if pre.strip():
+                                    yield {"type": "thought", "chunk": pre}
+                                
+                                # Switch to TOOL_DEF state
+                                state = "TOOL_DEF"
+                                buffer = rest
+                                continue
+
                             if "</think>" in buffer:
                                 thought, rest = buffer.split("</think>", 1)
                                 if thought.strip():
