@@ -2,7 +2,7 @@ application:
   log_format: "%(asctime)s %(levelname)s %(name)s \u2500 %(message)s"
   log_level: INFO
   name: Jarvis
-  tts_enabled: false
+  tts_enabled: true
 asr:
   engine: whisper
   whisper:
@@ -14,6 +14,9 @@ home_assistant:
   token: ''
   url: http://localhost:8123
 llm:
+  provider: gemini
+  gemini:
+    model: gemini-2.5-flash
   base_url: http://localhost:8000/v1
   context_window: 10240
   filename: Qwen3-4B-Q4_K_M.gguf

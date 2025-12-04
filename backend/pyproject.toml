@@ -18,6 +18,7 @@ dependencies = [
     "langgraph",
     "langchain",
     "langchain-openai",
+    "langchain-google-genai",
     "langchain-community",
     "langchain-mcp-adapters",
     "requests",

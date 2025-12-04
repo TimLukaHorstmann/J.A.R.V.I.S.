@@ -288,14 +288,21 @@ class JarvisAgent:
                     msg = event["data"]["output"]
                     if msg:
                         # Handle tool calls
-                        if hasattr(msg, "tool_calls") and msg.tool_calls:
-                            for tc in msg.tool_calls:
+                        if isinstance(msg, dict):
+                            tool_calls = msg.get("tool_calls", [])
+                            content = msg.get("content", "")
+                        else:
+                            tool_calls = getattr(msg, "tool_calls", [])
+                            content = getattr(msg, "content", "")
+
+                        if tool_calls:
+                            for tc in tool_calls:
                                 yield {"type": "tool_call", "tool": tc["name"], "args": tc["args"]}
                         
                         # Fallback: If we didn't stream anything, yield the content now
-                        if not streamed_response and msg.content:
+                        if not streamed_response and content:
                             logger.info("Fallback: Yielding full content from on_chat_model_end")
-                            buffer += msg.content
+                            buffer += content
 
         except Exception as e:
             logger.error(f"Error in process_message stream: {e}")
