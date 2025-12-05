@@ -4,140 +4,102 @@
   <img src="frontend/assets/images/jarvis_logo2.png" alt="Jarvis Logo" width="100%"/>
 </p>
 
-<!-- Badges -->
 <p align="center">
   <img src="https://img.shields.io/badge/contributions-welcome-brightgreen" alt="Contributions Welcome"/>
-  <!-- <img src="https://img.shields.io/badge/build-passing-brightgreen" alt="Build Status"/> -->
   <img src="https://img.shields.io/badge/license-Non--Commercial-blue" alt="License"/>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python Version"/>
   <img src="https://img.shields.io/badge/docker-ready-blue" alt="Docker"/>
 </p>
 
-A voice-enabled advanced AI assistant inspired by the Marvel Cinematic Universe's J.A.R.V.I.S. (Just a Rather Very Intelligent System). This project combines local state-of-the-art large language models (LLMs), speech-to-text (ASR), text-to-speech (TTS), and external tool integration via the Model Context Protocol (MCP) to create a conversational AI experience.
+Voice-first J.A.R.V.I.S.-inspired assistant powered by LangGraph, FastAPI, Model Context Protocol tools, and a modern web UI. It can run fully locally (llama-cpp + local TTS) or use cloud models such as Gemini and ElevenLabs.
 
-## Features
-
-*   **Voice & Text Interaction:** Communicate via microphone or text input.
-*   **Wake Word Detection:** Activate the microphone by saying "Hey Jarvis" (requires browser support).
-*   **Streaming Responses:** Receive text and audio responses incrementally.
-*   **Multi-Language Support:** Configured for English (`en`) and German (`de`).
-*   **Tool Integration (Qwen-Agent & MCP):**
-    *   **MCP Servers:** Google Maps, Brave Search, Web Fetch, Weather (AccuWeather).
-    *   **Custom Tools:** Includes a sample `magic_function`.
-*   **Local LLM:** Powered by `llama-cpp-python` for local inference (configurable model).
-*   **ASR:** Uses `Whisper` for accurate speech recognition.
-*   **TTS:** Supports multiple engines (`Kokoro`, `Coqui XTTS-v2`, `FastTTS`).
-*   **Location Awareness:** Uses browser geolocation to provide context-aware responses (e.g., for weather).
-*   **Modern Web UI:** Built with HTML, CSS, and JavaScript.
+## Highlights
+- LangGraph agent with streaming thoughts, tool traces, and WebSocket updates to the UI.
+- LLM flexibility: local GGUF models via `llama-cpp-python` or Gemini (`gemini-2.5-flash`) by switching `llm.provider` in `backend/config.yaml`.
+- Voice pipeline: Faster-Whisper ASR plus pluggable TTS engines (`elevenlabs`, `kokoro`, `xtts`, `fish_speech`, `chatterbox`).
+- Tooling via MCP (Google Maps, Brave Search, Fetch, Weather) plus local tools (search, Wikipedia, news, translator, currency, calculator, Spotify, Home Assistant, OpenWB, system controls, long-term memory).
+- UI niceties: wake-word detection, stop generation, TTS toggle, thought toggle, language selector (EN/DE), session history, and editable long-term memory.
+- SQLite-backed sessions and memory, served through FastAPI with a lightweight HTML/JS frontend.
 
 ## Architecture
+- **Frontend (`frontend/`):** Vanilla HTML/CSS/JS served by FastAPI; uses WebSockets for streaming text, audio, tool calls, and thought traces.
+- **Backend (`backend/app.py`):** FastAPI server that wires together the audio stack, LangGraph agent (`backend/agent/graph.py`), MCP client, and local tools.
+- **Agent:** LangGraph + LangChain messages, streaming `<think>` traces, and tool calls bound to MCP + local tools.
+- **Audio:** Faster-Whisper ASR; TTS engines initialized in `backend/services/audio.py`.
+- **Data:** SQLite (`backend/database.py`) for chats and long-term memory.
 
-*   **Frontend ([`frontend/`](frontend/)):**
-    *   HTML ([`index.html`](frontend/index.html)), CSS ([`style.css`](frontend/style.css)), and JavaScript ([`script.js`](frontend/script.js)).
-    *   Communicates with the backend via WebSockets.
-    *   Handles user input (text/audio), displays conversation, plays back audio responses.
-*   **Backend ([`backend/`](backend/)):**
-    *   **API Server ([`app.py`](backend/app.py)):** Built with FastAPI, handles WebSocket connections, serves the frontend.
-    *   **LLM Orchestration:** Uses `Qwen-Agent` to manage conversation flow and tool calls.
-    *   **LLM Inference:** Proxies requests to a local `llama-cpp-python` server (or uses its own instance).
-    *   **ASR:** Transcribes user audio using the configured Whisper model.
-    *   **TTS:** Synthesizes AI responses into audio using the configured TTS engine.
-    *   **Tooling:**
-        *   Integrates with external tools via MCP servers ([`start_mcp_servers.sh`](backend/start_mcp_servers.sh)).
-        *   **Home Assistant:** Fully integrated via MCP.
-        *   **Memory:** Long-term memory stored in SQLite, manageable via UI.
+## Quickstart
+### Prerequisites
+- Python 3.10+, `uv` (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
+- Node.js 18+ (for `npx supergateway` MCP bridges), `ffmpeg`
+- Build tooling for `llama-cpp-python` (cmake, rust/cargo; Metal on macOS is auto-enabled in `make setup`)
 
-## Setup & Installation
+### Setup
+```bash
+git clone <repo-url>
+cd JARVIS
+make setup          # creates .venv with uv and installs deps
+```
 
-1.  **Clone the Repository:**
-    ```bash
-    git clone <repository-url>
-    cd jarvis
-    ```
+Create a `.env` alongside `backend/` for any keys you use:
+```
+GEMINI_API_KEY=...
+ELEVENLABS_API_KEY=...
+GOOGLE_MAPS_API_KEY=...
+BRAVE_API_KEY=...
+HASS_URL=...            # e.g. http://localhost:8123
+HASS_TOKEN=...
+SPOTIPY_CLIENT_ID=...
+SPOTIPY_CLIENT_SECRET=...
+SPOTIPY_REDIRECT_URI=...
+```
 
-2.  **Backend Setup:**
-    *   **Install Dependencies:** This project uses `uv` for package management.
-        ```bash
-        make setup
-        ```
-        *(This will automatically create a virtual environment and install dependencies, including `llama-cpp-python` with Metal support on macOS.)*
+### Choose your LLM
+- **Local (fully offline-capable):**
+  ```bash
+  make download-model   # downloads the GGUF from config.yaml to backend/pretrained_models/llm
+  make llm-server       # start llama-cpp-python server on :8000 (separate terminal)
+  ```
+  Set `llm.provider: local` and ensure `llm.base_url`/`model_alias` match your server.
 
-    *   **Download LLM Model:** The required model (specified in [`backend/config.yaml`](backend/config.yaml)) will be downloaded automatically by `huggingface_hub` on first run if not present in the specified `local_dir`.
-    *   **Configure API Keys:** Set the following environment variables for the MCP tools:
-        *   `GOOGLE_MAPS_API_KEY`
-        *   `BRAVE_API_KEY`
-        *   `ACCUWEATHER_API_KEY`
-        *   `HASS_URL` & `HASS_TOKEN` (for Home Assistant)
-        *(See [`backend/start_mcp_servers.sh`](backend/start_mcp_servers.sh) or [`.vscode/mcp.json`](.vscode/mcp.json) for details)*
-    *   **Start MCP Servers:**
-        ```bash
-        ./start_mcp_servers.sh
-        ```
-        *(This will run the servers in the background and store their PIDs in `.mcp_pids`)*
-    *   **Start Backend Server:**
-        ```bash
-        make run
-        ```
-        *(This starts the backend server on http://localhost:8000)*
+- **Gemini:**
+  Set `llm.provider: gemini` and `GEMINI_API_KEY`. No local model server required.
 
-3.  **Frontend Access:**
-    *   Open your web browser and navigate to `http://localhost:8000` (or the host/port you configured).
+### Run the app
+```bash
+make run   # starts MCP servers + FastAPI on http://localhost:8080
+```
+Open `http://localhost:8080`, then chat via text or mic. Use `make stop` to stop MCP servers.
 
 ## Configuration
+- `backend/config.yaml` controls:
+  - `llm`: provider (`local` or `gemini`), local model repo/filename/alias, context window, base URL.
+  - `tts`: engine selection (`elevenlabs`, `kokoro`, `xtts`, `fish_speech`, `chatterbox`) and per-engine settings.
+  - `asr`: Faster-Whisper model size, device, and quantization.
+  - `tools`: enable/disable local tools (weather, search, calculator, translator, news, Spotify, Home Assistant, OpenWB, system controls, memory).
+  - `mcp.servers`: SSE endpoints for Google Maps, Brave Search, Fetch, Weather. Home Assistant MCP is auto-added when `HASS_URL`/`HASS_TOKEN` are set and the tool is enabled.
+  - `application`: logging and TTS toggle.
+  - `home_assistant`, `openwb`, `spotify`: integration settings.
+- UI toggles (wake word, thinking, TTS, tool switches) are exposed in the web app and persist back to `config.yaml`.
 
-*   **Backend ([`backend/config.yaml`](backend/config.yaml)):** Configure LLM model details, ASR engine (Whisper settings), TTS engine (Kokoro, Coqui, FastTTS), logging level, and default location.
-*   **UI Settings:** Toggle tools (including Home Assistant) and TTS directly from the web interface.
-*   **VS Code MCP ([`.vscode/mcp.json`](.vscode/mcp.json)):** Defines MCP server configurations and required API key inputs for easy startup within VS Code using the Model Context Protocol extension.
-
-## Usage
-
-*   **Text Input:** Type your message in the input box and press Enter or click the send button.
-*   **Voice Input:**
-    *   Click the microphone button to start recording. Speak your query.
-    *   Click the button again or wait for silence detection to stop recording.
-    *   Alternatively, say "Hey Jarvis" (if wake word detection is active and supported by your browser) to start recording automatically.
-*   **Memory Management:** Use the "Memory" button in the sidebar to view, add, or delete long-term memories.
-*   **Language Selection:** Use the dropdown menu to select the input/output language (currently English or German).
+## Tools & Integrations
+- **MCP servers (via `backend/start_mcp_servers.sh`):** Google Maps, Brave Search, Fetch, Open-Meteo Weather; Home Assistant MCP when credentials are present.
+- **Local tools (`backend/tools.py`):** open-meteo weather/time, DuckDuckGo + trafilatura search, Wikipedia, currency conversion, calculator, NewsAPI headlines, translation, Spotify control, Home Assistant (Alexa commands), OpenWB EV charger status, macOS system volume/battery, and long-term memory store/retrieve.
+- **Audio:** TTS defaults to ElevenLabs; switch to local engines (Kokoro/XTTS/Fish-Speech/Chatterbox) for fully local runs.
 
 ## Docker
+`docker-compose.yml` includes services for MCP bridges (Node), an LLM server placeholder, and the FastAPI app (exposed on `8080`). Customize the `llm` service (or point `llm.base_url` at an existing server) before building.
+```bash
+docker-compose build jarvis
+docker-compose up
+```
 
-A [`Dockerfile`](backend/Dockerfile) and [`docker-compose.yml`](docker-compose.yml) are provided for containerizing the backend service.
-
-*   **Build:**
-    ```bash
-    docker-compose build
-    ```
-*   **Run:**
-    ```bash
-    # Make sure to pass necessary API keys as environment variables
-    # e.g., using a .env file or directly in the command line
-    docker-compose up
-    ```
-*(Note: GPU acceleration within Docker requires specific configurations depending on your host OS and GPU drivers (e.g., NVIDIA Container Toolkit). The provided Dockerfile uses CPU by default unless `llama-cpp-python` is built with GPU flags.)*
-
-## Scripts
-
-*   [`backend/start_mcp_servers.sh`](backend/start_mcp_servers.sh): Starts the necessary MCP tool servers in the background.
-*   [`backend/stop_mcp_servers.sh`](backend/stop_mcp_servers.sh): Stops the MCP servers started by the start script.
-
-## Future Plans & Features
-
-We are actively working to improve and extend Jarvis. Planned features and enhancements include:
-
-1. **Online Hosting:**  
-   Making Jarvis available to the public via online hosting. We are currently experimenting with deployment on Hugging Face Spaces, but there are still some setup issues to resolve (work in progress).
-
-2. **Extended Language Support:**  
-   Expanding language capabilities, especially for German. This depends on the availability and quality of TTS systems for additional languages.
-
-3. **More MCP Servers:**  
-   Integrating additional Model Context Protocol (MCP) servers to provide more tools and external integrations.
-
-4. **UI Improvements:**  
-   Enhancing the user interface for a more intuitive and engaging experience.
-
-**Contributions are welcome!**  
-If you have ideas, suggestions, or would like to contribute code, tools, or documentation, please open an issue or submit a pull request.
+## Useful scripts
+- `make setup` — install dependencies with `uv`
+- `make download-model` — fetch the configured GGUF from Hugging Face
+- `make llm-server` — run a local llama-cpp server using the configured model/context
+- `make run` / `make stop` — start/stop MCP servers and the FastAPI app
+- `backend/start_mcp_servers.sh` / `backend/stop_mcp_servers.sh` — manual MCP lifecycle helpers
 
 ## License
 
