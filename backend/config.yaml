@@ -14,15 +14,15 @@ home_assistant:
   token: ''
   url: http://localhost:8123
 llm:
-  provider: gemini
-  gemini:
-    model: gemini-2.5-flash
   base_url: http://localhost:8000/v1
   context_window: 10240
-  filename: Qwen3-4B-Q4_K_M.gguf
+  filename: Qwen3-0.6B-Q8_0.gguf
+  gemini:
+    model: gemini-2.5-flash
   local_dir: pretrained_models/llm
   model_alias: Qwen3
-  repo_id: Qwen/Qwen3-4B-GGUF
+  provider: gemini
+  repo_id: Qwen/Qwen3-0.6B-GGUF
 mcp:
   servers:
     brave_search:
@@ -60,7 +60,12 @@ tts:
     device: cpu
     language: en
     model_name: ChatterboxMultilingualTTS
-  engine: kokoro
+  engine: elevenlabs
+  elevenlabs:
+    voice_id: 3ykCLzjor6Ws3YQsVXP9
+    model_id: eleven_flash_v2_5
+    stability: 0.5
+    similarity_boost: 0.75
   fish_speech:
     reference_audio_path: voice_samples/jarvis_sample.wav
     reference_text_path: voice_samples/jarvis/sample.lab

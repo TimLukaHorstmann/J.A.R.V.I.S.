@@ -82,8 +82,23 @@ class AudioService:
         if self.tts_engine == 'fish_speech':
             self._init_fish_speech()
 
+        if self.tts_engine == 'elevenlabs':
+            self._init_elevenlabs()
+
         if self.tts_engine == 'kokoro':
             self._init_kokoro()
+
+    def _init_elevenlabs(self):
+        tts_config = self.config['tts']['elevenlabs']
+        logger.info("Initializing ElevenLabs TTS...")
+        self.el_voice_id = tts_config.get('voice_id', '21m00Tcm4TlvDq8ikWAM')
+        self.el_model_id = tts_config.get('model_id', 'eleven_monolingual_v1')
+        self.el_stability = tts_config.get('stability', 0.5)
+        self.el_similarity_boost = tts_config.get('similarity_boost', 0.75)
+        self.el_api_key = os.getenv("ELEVENLABS_API_KEY")
+        
+        if not self.el_api_key:
+            logger.warning("ELEVENLABS_API_KEY not found in environment variables.")
 
     def _init_fish_speech(self):
         tts_config = self.config['tts']['fish_speech']
@@ -221,11 +236,75 @@ class AudioService:
                 return self._synthesize_xtts(text)
             elif self.tts_engine == 'fish_speech':
                 return self._synthesize_fish_speech(text)
+            elif self.tts_engine == 'elevenlabs':
+                return self._synthesize_elevenlabs(text)
             else:
                 return self._synthesize_kokoro(text)
             
         except Exception as e:
             logger.error(f"Synthesis failed: {e}")
+            return b""
+
+    def _synthesize_elevenlabs(self, text: str) -> bytes:
+        if not self.el_api_key:
+            logger.error("ElevenLabs API key is missing.")
+            return b""
+
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{self.el_voice_id}"
+        
+        headers = {
+            "Accept": "audio/mpeg",
+            "Content-Type": "application/json",
+            "xi-api-key": self.el_api_key
+        }
+        
+        data = {
+            "text": text,
+            "model_id": self.el_model_id,
+            "voice_settings": {
+                "stability": self.el_stability,
+                "similarity_boost": self.el_similarity_boost
+            }
+        }
+
+        try:
+            response = requests.post(url, json=data, headers=headers, timeout=30)
+            if response.status_code == 200:
+                return self._convert_mp3_to_wav(response.content)
+            else:
+                logger.error(f"ElevenLabs API error: {response.status_code} - {response.text}")
+                return b""
+        except Exception as e:
+            logger.error(f"ElevenLabs request failed: {e}")
+            return b""
+
+    def _convert_mp3_to_wav(self, mp3_data: bytes) -> bytes:
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_mp3:
+                tmp_mp3.write(mp3_data)
+                tmp_mp3_name = tmp_mp3.name
+            
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_wav:
+                tmp_wav_name = tmp_wav.name
+
+            subprocess.run([
+                "ffmpeg", "-y", "-v", "error",
+                "-i", tmp_mp3_name,
+                "-f", "wav",
+                tmp_wav_name
+            ], check=True)
+            
+            with open(tmp_wav_name, "rb") as f:
+                wav_bytes = f.read()
+                
+            if os.path.exists(tmp_mp3_name):
+                os.unlink(tmp_mp3_name)
+            if os.path.exists(tmp_wav_name):
+                os.unlink(tmp_wav_name)
+                
+            return wav_bytes
+        except Exception as e:
+            logger.error(f"MP3 to WAV conversion failed: {e}")
             return b""
 
     def _synthesize_fish_speech(self, text: str) -> bytes:
