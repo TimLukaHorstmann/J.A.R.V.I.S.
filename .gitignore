@@ -17,5 +17,6 @@ backend/.cache
 
 backend/uv.lock
 backend/agent/prompts.py
+backend/certs/
 
 frontend/assets/images/house_hologram*.png

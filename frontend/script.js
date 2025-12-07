@@ -10,6 +10,7 @@ let wakeWordEnabled = true;
 let thinkingEnabled = true;
 let ttsEnabled = true;
 let wakeWordRecognition = null;
+let recognition = null;
 let currentSessionId = null;
 let isGenerating = false;
 let activeAgentMessage = null;
@@ -470,6 +471,112 @@ function playAudio(blob) {
 
 // Recording Functions
 async function startRecording() {
+    if (isRecording) return; // Prevent multiple triggers
+
+    // Check for SpeechRecognition support
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SR) {
+        startClientSideRecording(SR);
+    } else {
+        startServerSideRecording();
+    }
+}
+
+function startClientSideRecording(SR) {
+    // Stop wake word detection immediately to free up the mic
+    stopWakeWordDetection();
+    
+    // Set flag to prevent wake word from restarting in its onend handler
+    isRecording = true; 
+    const micButton = document.getElementById("mic-button");
+    if (micButton) micButton.classList.add("recording");
+
+    try {
+        recognition = new SR();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        recognition.onstart = () => {
+            console.log("Command recognition started");
+        };
+
+        recognition.onresult = (event) => {
+            const lastResult = event.results[event.results.length - 1];
+            if (lastResult.isFinal) {
+                const transcript = lastResult[0].transcript.trim();
+                if (transcript) {
+                    console.log("Client STT Final:", transcript);
+                    
+                    // Add to UI immediately
+                    addMessage(transcript, "user");
+                    setGenerating(true);
+                    activeAgentMessage = null;
+
+                    // Send to backend
+                    ws.send(JSON.stringify({
+                        type: "config",
+                        thinking: thinkingEnabled
+                    }));
+                    
+                    ws.send(JSON.stringify({
+                        type: "text",
+                        text: transcript
+                    }));
+                }
+            }
+        };
+
+        recognition.onerror = (event) => {
+            console.error("Speech recognition error", event.error);
+            if (event.error === 'no-speech') {
+                // Just stop if no speech
+                stopRecording();
+            } else if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                // Permission denied or insecure origin. Try fallback, but it might also fail.
+                console.warn("Client STT not allowed. Falling back to server-side...");
+                stopRecording(); // Stop the failed recognition instance
+                startServerSideRecording();
+            } else {
+                // Fallback to server-side if other error?
+                stopRecording();
+                if (event.error !== 'aborted') {
+                     addMessage(`Speech recognition error: ${event.error}. Falling back to server-side...`, "system");
+                     startServerSideRecording();
+                }
+            }
+        };
+
+        recognition.onend = () => {
+            isRecording = false;
+            const micButton = document.getElementById("mic-button");
+            if (micButton) micButton.classList.remove("recording");
+            
+            if (wakeWordEnabled) {
+                startWakeWordDetection();
+            }
+        };
+
+        // Small delay to ensure wake word recognition has fully stopped/released mic
+        setTimeout(() => {
+            try {
+                recognition.start();
+            } catch (e) {
+                console.error("Failed to start recognition after delay:", e);
+                isRecording = false;
+                if (micButton) micButton.classList.remove("recording");
+            }
+        }, 100);
+
+    } catch (e) {
+        console.error("Failed to start client STT:", e);
+        isRecording = false;
+        if (micButton) micButton.classList.remove("recording");
+        startServerSideRecording();
+    }
+}
+
+async function startServerSideRecording() {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder = new MediaRecorder(stream);
@@ -556,11 +663,20 @@ async function startRecording() {
         
     } catch (err) {
         console.error("Error accessing microphone:", err);
-        addMessage("Error accessing microphone. Please check permissions.", "system");
+        let msg = "Error accessing microphone. Please check permissions.";
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+            msg += " Note: Microphone access usually requires HTTPS or localhost.";
+        }
+        addMessage(msg, "system");
     }
 }
 
 function stopRecording() {
+    if (recognition && isRecording) {
+        recognition.stop();
+        // isRecording will be set to false in onend
+    }
+
     if (mediaRecorder && isRecording) {
         mediaRecorder.stop();
         isRecording = false;
@@ -623,7 +739,7 @@ function startWakeWordDetection() {
 
 function stopWakeWordDetection() {
     if (wakeWordRecognition) {
-        try { wakeWordRecognition.stop(); } catch (e) {}
+        try { wakeWordRecognition.abort(); } catch (e) {}
     }
 }
 

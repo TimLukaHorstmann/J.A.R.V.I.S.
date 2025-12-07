@@ -60,12 +60,12 @@ tts:
     device: cpu
     language: en
     model_name: ChatterboxMultilingualTTS
-  engine: elevenlabs
   elevenlabs:
-    voice_id: 3ykCLzjor6Ws3YQsVXP9
     model_id: eleven_flash_v2_5
-    stability: 0.5
     similarity_boost: 0.75
+    stability: 0.5
+    voice_id: 3ykCLzjor6Ws3YQsVXP9
+  engine: elevenlabs
   fish_speech:
     reference_audio_path: voice_samples/jarvis_sample.wav
     reference_text_path: voice_samples/jarvis/sample.lab

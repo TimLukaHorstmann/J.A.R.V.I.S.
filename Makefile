@@ -36,8 +36,10 @@ llm-server:
 run:
 	@echo "Starting MCP Servers..."
 	cd backend && ./start_mcp_servers.sh
-	@echo "Starting JARVIS Backend..."
-	cd backend && uv run uvicorn app:app --host 0.0.0.0 --port 8080 --reload --proxy-headers --forwarded-allow-ips '*'
+	@echo "Ensuring SSL Certificates..."
+	./scripts/generate_cert.sh
+	@echo "Starting JARVIS Backend (HTTPS)..."
+	cd backend && uv run uvicorn app:app --host 0.0.0.0 --port 8080 --reload --proxy-headers --forwarded-allow-ips '*' --ssl-keyfile certs/key.pem --ssl-certfile certs/cert.pem
 
 stop:
 	@echo "Stopping MCP Servers..."
