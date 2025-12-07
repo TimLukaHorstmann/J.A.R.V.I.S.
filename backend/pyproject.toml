@@ -36,6 +36,8 @@ dependencies = [
     "python-dotenv",
     "paho-mqtt>=2.1.0",
     "ormsgpack",
+    "ollama>=0.6.1",
+    "langchain-ollama>=0.3.3",
 ]
 
 [project.optional-dependencies]

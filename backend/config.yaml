@@ -19,9 +19,12 @@ llm:
   filename: Qwen3-0.6B-Q8_0.gguf
   gemini:
     model: gemini-2.5-flash
+  ollama_cloud:
+    model: gpt-oss:20b-cloud
+    base_url: "https://ollama.com"
   local_dir: pretrained_models/llm
   model_alias: Qwen3
-  provider: gemini
+  provider: ollama-cloud
   repo_id: Qwen/Qwen3-0.6B-GGUF
 mcp:
   servers:
