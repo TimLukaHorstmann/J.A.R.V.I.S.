@@ -27,6 +27,17 @@ class MCPService:
         # Determine if enabled: check tools config AND presence of credentials
         # We use the 'tools' section to allow UI toggling
         tools_config = self.config.get("tools", {})
+
+        # Filter servers based on tools config
+        keys_to_remove = []
+        for server_name in server_map:
+            if server_name in tools_config and not tools_config[server_name]:
+                keys_to_remove.append(server_name)
+        
+        for key in keys_to_remove:
+            del server_map[key]
+            logger.info(f"MCP server '{key}' disabled via tools config.")
+
         ha_enabled = tools_config.get("home_assistant", False) and (ha_url and ha_token)
         
         if ha_enabled:

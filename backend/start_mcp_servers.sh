@@ -7,12 +7,13 @@ set -e
 ENV_FILE="../.env"
 if [ -f "$ENV_FILE" ]; then
     # Only set variables from .env if they're not already set in the environment
-    if [ -z "$GOOGLE_MAPS_API_KEY" ] || [ -z "$BRAVE_API_KEY" ] || [ -z "$ACCUWEATHER_API_KEY" ]; then
+    if [ -z "$GOOGLE_MAPS_API_KEY" ] || [ -z "$BRAVE_API_KEY" ] || [ -z "$ACCUWEATHER_API_KEY" ] || [ -z "$GOOGLE_OAUTH_CREDENTIALS" ] ; then
         echo "Loading API keys from $ENV_FILE file"
         # Using grep and cut to extract values from the .env file
         [ -z "$GOOGLE_MAPS_API_KEY" ] && export GOOGLE_MAPS_API_KEY=$(grep GOOGLE_MAPS_API_KEY "$ENV_FILE" | cut -d= -f2)
         [ -z "$BRAVE_API_KEY" ] && export BRAVE_API_KEY=$(grep BRAVE_API_KEY "$ENV_FILE" | cut -d= -f2)
         [ -z "$ACCUWEATHER_API_KEY" ] && export ACCUWEATHER_API_KEY=$(grep ACCUWEATHER_API_KEY "$ENV_FILE" | cut -d= -f2)
+        [ -z "$GOOGLE_OAUTH_CREDENTIALS" ] && export GOOGLE_OAUTH_CREDENTIALS=$(grep GOOGLE_OAUTH_CREDENTIALS "$ENV_FILE" | cut -d= -f2)
     fi
 fi
 
@@ -25,6 +26,13 @@ fi
 if [ -z "$BRAVE_API_KEY" ]; then
   echo "BRAVE_API_KEY is not set. Please set it in your environment or in the .env file."
   exit 1
+fi
+
+# Check for npx
+if ! command -v npx &> /dev/null; then
+    echo "Error: 'npx' is not installed or not in PATH."
+    echo "Please install Node.js and npm to run MCP servers."
+    exit 1
 fi
 
 # AccuWeather key check removed as we switched to Open-Meteo (no key required)
@@ -83,11 +91,22 @@ npx -y supergateway --stdio "uv run python weather_server.py" \
   > logs/weather.log 2>&1 &
 PIDS+=($!)
 
+# Google Calendar MCP server (https://github.com/nspady/google-calendar-mcp)
+npx -y supergateway --stdio "npx -y @cocal/google-calendar-mcp" \
+  --port 4005 \
+  --baseUrl http://127.0.0.1:4005 \
+  --ssePath /messages \
+  --messagePath /message \
+  --cors "*" \
+  --env GOOGLE_OAUTH_CREDENTIALS="./google_calendar_credentials.json" \
+  > logs/google-calendar.log 2>&1 &
+PIDS+=($!)
 {
   echo "${PIDS[0]} 4001"
   echo "${PIDS[1]} 4002"
   echo "${PIDS[2]} 4003"
   echo "${PIDS[3]} 4004"
+  echo "${PIDS[4]} 4005"
 } > .mcp_pids
 echo "Started, PIDs: ${PIDS[*]}"
 echo "All MCP servers started in background."

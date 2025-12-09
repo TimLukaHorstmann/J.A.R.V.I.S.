@@ -18,5 +18,6 @@ backend/.cache
 backend/uv.lock
 backend/agent/prompts.py
 backend/certs/
+backend/google_calendar_credentials.json
 
 frontend/assets/images/house_hologram*.png

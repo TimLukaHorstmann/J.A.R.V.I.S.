@@ -94,6 +94,11 @@ async def update_settings(new_settings: dict):
     # Save to file
     save_config()
     
+    # Re-initialize MCP service to pick up enabled/disabled servers
+    await mcp_service.cleanup()
+    mcp_service.config = config
+    await mcp_service.initialize()
+
     # Re-initialize local tools to pick up changes (e.g. Spotify enabled/disabled)
     local_tools = get_local_tools(config)
     agent = JarvisAgent(llm_service, mcp_service, local_tools)

@@ -919,6 +919,10 @@ const toolMetadata = {
         title: 'MCP',
         desc: 'Message / control plane for routing tool calls and agent events.'
     },
+    google_calendar: {
+        title: 'Google Calendar',
+        desc: 'Manage your calendar events, schedule meetings, and check availability.'
+    },
     openwb: {
         title: 'OpenWB',
         desc: 'Controls OpenWB chargers and reads charging state for EV charging management.'
