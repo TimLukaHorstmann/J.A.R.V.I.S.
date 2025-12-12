@@ -221,10 +221,28 @@ async def websocket_endpoint(websocket: WebSocket):
     
     # Default session
     session_id = db_service.create_session("New Session")
-    await websocket.send_json({"type": "session_init", "session_id": session_id})
+    
+    # Send init message with config
+    await websocket.send_json({
+        "type": "session_init", 
+        "session_id": session_id,
+        "config": {
+            "asr": {
+                "engine": config.get('asr', {}).get('engine', 'whisper'),
+                "mode": config.get('asr', {}).get('mode', 'server')
+            }
+        }
+    })
     
     processing_task = None
     current_thinking_mode = True
+    
+    # Vosk Recognizer
+    recognizer = None
+    current_lang = config.get('asr', {}).get('vosk', {}).get('lang', 'en')
+    
+    if audio_service.asr_engine == 'vosk':
+        recognizer = audio_service.create_vosk_recognizer(current_lang)
     
     try:
         while True:
@@ -236,12 +254,28 @@ async def websocket_endpoint(websocket: WebSocket):
             if "bytes" in message:
                 # Audio received
                 audio_bytes = message["bytes"]
-                user_text = audio_service.transcribe(audio_bytes)
-                if not user_text:
-                    await websocket.send_json({"type": "error", "message": "Could not understand audio"})
-                    continue
                 
-                await websocket.send_json({"type": "transcription", "text": user_text})
+                if audio_service.asr_engine == 'vosk' and recognizer:
+                    # Vosk Streaming
+                    if recognizer.AcceptWaveform(audio_bytes):
+                        result = json.loads(recognizer.Result())
+                        text = result.get("text", "")
+                        if text:
+                            await websocket.send_json({"type": "transcription", "text": text, "is_final": True})
+                            user_text = text
+                    else:
+                        partial = json.loads(recognizer.PartialResult())
+                        partial_text = partial.get("partial", "")
+                        if partial_text:
+                            await websocket.send_json({"type": "transcription", "text": partial_text, "is_final": False})
+                else:
+                    # Whisper / Batch
+                    user_text = audio_service.transcribe(audio_bytes)
+                    if not user_text:
+                        await websocket.send_json({"type": "error", "message": "Could not understand audio"})
+                        continue
+                    
+                    await websocket.send_json({"type": "transcription", "text": user_text, "is_final": True})
                 
             elif "text" in message:
                 try:
@@ -250,6 +284,14 @@ async def websocket_endpoint(websocket: WebSocket):
                     
                     if msg_type == "config":
                         current_thinking_mode = data.get("thinking", True)
+                        continue
+                    elif msg_type == "language":
+                        new_lang = data.get("lang")
+                        if new_lang and new_lang != current_lang:
+                            logger.info(f"Switching language to {new_lang}")
+                            current_lang = new_lang
+                            if audio_service.asr_engine == 'vosk':
+                                recognizer = audio_service.create_vosk_recognizer(current_lang)
                         continue
                     elif msg_type == "stop":
                         is_stop = True

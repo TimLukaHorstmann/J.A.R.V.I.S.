@@ -3,6 +3,7 @@ let reconnectInterval = 1000;
 const maxReconnectInterval = 30000;
 
 // State
+let asrConfig = { engine: 'whisper', mode: 'server' };
 let isRecording = false;
 let mediaRecorder = null;
 let audioChunks = [];
@@ -14,6 +15,7 @@ let recognition = null;
 let currentSessionId = null;
 let isGenerating = false;
 let activeAgentMessage = null;
+let currentAudio = null;
 
 // Silence Detection State
 let audioContext = null;
@@ -33,6 +35,15 @@ function connectWebSocket() {
         console.log("WebSocket connected");
         reconnectInterval = 1000; // Reset interval
         loadSessions(); // Load chat history list
+        
+        // Send initial language
+        const languageSelector = document.getElementById("language-selector");
+        if (languageSelector) {
+            ws.send(JSON.stringify({
+                type: "language",
+                lang: languageSelector.value
+            }));
+        }
     };
 
     ws.onclose = (e) => {
@@ -78,6 +89,10 @@ const handleMessage = async (event) => {
         
         if (data.type === "session_init") {
             currentSessionId = data.session_id;
+            if (data.config && data.config.asr) {
+                asrConfig = data.config.asr;
+                console.log("ASR Config:", asrConfig);
+            }
             if (!data.restored) {
                 const conversation = document.getElementById("conversation");
                 if (conversation) {
@@ -91,9 +106,17 @@ const handleMessage = async (event) => {
         } else if (data.type === "session_updated") {
             loadSessions();
         } else if (data.type === "transcription") {
-            addMessage(data.text, "user");
-            setGenerating(true);
-            activeAgentMessage = null; // Reset for new turn
+            if (data.is_final) {
+                addMessage(data.text, "user");
+                setGenerating(true);
+                activeAgentMessage = null;
+                const input = document.getElementById("text-input");
+                if (input) input.value = "";
+            } else {
+                // Partial
+                const input = document.getElementById("text-input");
+                if (input) input.value = data.text;
+            }
         } else if (data.type === "text") {
             const content = data.chunk || data.content || data.data || "";
             updateAgentMessage("text", content);
@@ -448,8 +471,13 @@ function createNewSession() {
 
 // Audio Functions
 function playAudio(blob) {
+    // Stop any currently playing audio
+    stopAudioPlayback();
+
     const audioUrl = URL.createObjectURL(blob);
     const audio = new Audio(audioUrl);
+    audio.srcUrl = audioUrl; // Store for cleanup
+    currentAudio = audio;
     
     if (window.jarvisVisualizer) {
         window.jarvisVisualizer.setSpeaking(true);
@@ -463,22 +491,99 @@ function playAudio(blob) {
         if (wakeWordEnabled) {
             startWakeWordDetection();
         }
+        currentAudio = null;
     };
     
     stopWakeWordDetection();
     audio.play().catch(e => console.error("Audio playback failed:", e));
 }
 
+function stopAudioPlayback() {
+    if (currentAudio) {
+        currentAudio.onended = null; // Prevent double trigger
+        currentAudio.pause();
+        
+        if (currentAudio.srcUrl) {
+            URL.revokeObjectURL(currentAudio.srcUrl);
+        }
+        
+        if (window.jarvisVisualizer) {
+            window.jarvisVisualizer.setSpeaking(false);
+        }
+        
+        // Restore wake word if it was enabled globally
+        if (wakeWordEnabled) {
+            startWakeWordDetection();
+        }
+        
+        currentAudio = null;
+    }
+}
+
 // Recording Functions
 async function startRecording() {
+    stopAudioPlayback(); // Interrupt TTS
     if (isRecording) return; // Prevent multiple triggers
 
-    // Check for SpeechRecognition support
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SR) {
-        startClientSideRecording(SR);
+    // Check config
+    if (asrConfig.mode === 'client') {
+        // Check for SpeechRecognition support
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SR) {
+            startClientSideRecording(SR);
+            return;
+        }
+    }
+
+    if (asrConfig.engine === 'vosk') {
+        startStreamingRecording();
     } else {
         startServerSideRecording();
+    }
+}
+
+// Streaming State
+let audioContextStream = null;
+let processor = null;
+let inputStream = null;
+
+async function startStreamingRecording() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioContextStream = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+        inputStream = audioContextStream.createMediaStreamSource(stream);
+        
+        // Buffer size 4096
+        processor = audioContextStream.createScriptProcessor(4096, 1, 1);
+        
+        inputStream.connect(processor);
+        processor.connect(audioContextStream.destination);
+        
+        processor.onaudioprocess = (e) => {
+            if (!isRecording) return;
+            
+            const inputData = e.inputBuffer.getChannelData(0);
+            // Convert float32 to int16
+            const buffer = new ArrayBuffer(inputData.length * 2);
+            const view = new DataView(buffer);
+            for (let i = 0; i < inputData.length; i++) {
+                let s = Math.max(-1, Math.min(1, inputData[i]));
+                view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+            }
+            
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(buffer);
+            }
+        };
+        
+        isRecording = true;
+        const micButton = document.getElementById("mic-button");
+        if (micButton) micButton.classList.add("recording");
+        stopWakeWordDetection();
+        
+    } catch (e) {
+        console.error("Error starting streaming:", e);
+        addMessage("Error accessing microphone.", "system");
     }
 }
 
@@ -679,6 +784,19 @@ function stopRecording() {
 
     if (mediaRecorder && isRecording) {
         mediaRecorder.stop();
+        isRecording = false;
+        const micButton = document.getElementById("mic-button");
+        if (micButton) micButton.classList.remove("recording");
+    }
+
+    if (processor && isRecording) {
+        processor.disconnect();
+        inputStream.disconnect();
+        if (audioContextStream) audioContextStream.close();
+        processor = null;
+        inputStream = null;
+        audioContextStream = null;
+        
         isRecording = false;
         const micButton = document.getElementById("mic-button");
         if (micButton) micButton.classList.remove("recording");
@@ -938,6 +1056,10 @@ const toolMetadata = {
     memory: {
         title: 'Memory',
         desc: 'Long-term memory storage for remembering user preferences and facts.'
+    },
+    notion: {
+        title: 'Notion',
+        desc: 'Integrates with Notion to read and write notes, tasks, and databases.'
     }
 };
 
@@ -974,6 +1096,7 @@ function formatToolName(name) {
 }
 
 function sendMessage() {
+    stopAudioPlayback(); // Interrupt TTS
     const input = document.getElementById("text-input");
     const text = input.value.trim();
     
@@ -1084,6 +1207,19 @@ document.addEventListener('DOMContentLoaded', () => {
             updateWakeWordUI();
             if (wakeWordEnabled) startWakeWordDetection();
             else stopWakeWordDetection();
+        });
+    }
+
+    if (languageSelector) {
+        languageSelector.addEventListener("change", () => {
+            const lang = languageSelector.value;
+            console.log("Language changed to:", lang);
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: "language",
+                    lang: lang
+                }));
+            }
         });
     }
 

@@ -14,6 +14,7 @@ if [ -f "$ENV_FILE" ]; then
         [ -z "$BRAVE_API_KEY" ] && export BRAVE_API_KEY=$(grep BRAVE_API_KEY "$ENV_FILE" | cut -d= -f2)
         [ -z "$ACCUWEATHER_API_KEY" ] && export ACCUWEATHER_API_KEY=$(grep ACCUWEATHER_API_KEY "$ENV_FILE" | cut -d= -f2)
         [ -z "$GOOGLE_OAUTH_CREDENTIALS" ] && export GOOGLE_OAUTH_CREDENTIALS=$(grep GOOGLE_OAUTH_CREDENTIALS "$ENV_FILE" | cut -d= -f2)
+        [ -z "$NOTION_TOKEN" ] && export NOTION_TOKEN=$(grep NOTION_TOKEN "$ENV_FILE" | cut -d= -f2)
     fi
 fi
 
@@ -101,12 +102,27 @@ npx -y supergateway --stdio "npx -y @cocal/google-calendar-mcp" \
   --env GOOGLE_OAUTH_CREDENTIALS="./google_calendar_credentials.json" \
   > logs/google-calendar.log 2>&1 &
 PIDS+=($!)
+
+# Start Notion MCP server
+npx -y supergateway --stdio "npx -y @notionhq/notion-mcp-server" \
+  --port 4006 \
+  --baseUrl http://127.0.0.1:4006 \
+  --ssePath /messages \
+  --messagePath /message \
+  --cors "*" \
+  --env NOTION_TOKEN="$NOTION_TOKEN" \
+  > logs/notion.log 2>&1 &
+PIDS+=($!)
+
 {
   echo "${PIDS[0]} 4001"
   echo "${PIDS[1]} 4002"
   echo "${PIDS[2]} 4003"
   echo "${PIDS[3]} 4004"
   echo "${PIDS[4]} 4005"
+  echo "${PIDS[5]} 4006"
 } > .mcp_pids
+
+
 echo "Started, PIDs: ${PIDS[*]}"
 echo "All MCP servers started in background."

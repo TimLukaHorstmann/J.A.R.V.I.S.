@@ -3,6 +3,7 @@ import os
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_mcp_adapters.tools import load_mcp_tools
 from contextlib import AsyncExitStack
+import dotenv
 
 logger = logging.getLogger("jarvis.mcp")
 
@@ -13,34 +14,22 @@ class MCPService:
         self.client = None
         self.exit_stack = AsyncExitStack()
 
+        # Load environment variables from .env file
+        dotenv.load_dotenv()
+
     async def initialize(self):
         """Connects to MCP servers and loads tools."""
         # Define server connections from config
+        # (these are the local ones defined in start_mcp_servers.sh)
         server_map = self.config.get("mcp", {}).get("servers", {}).copy()
         
-        # Add Home Assistant MCP if enabled
+        # HOME ASSISTANT
         ha_config = self.config.get("home_assistant", {})
         # Check env vars first, then config
         ha_url = os.getenv("HASS_URL") or ha_config.get("url")
         ha_token = os.getenv("HASS_TOKEN") or ha_config.get("token")
         
-        # Determine if enabled: check tools config AND presence of credentials
-        # We use the 'tools' section to allow UI toggling
-        tools_config = self.config.get("tools", {})
-
-        # Filter servers based on tools config
-        keys_to_remove = []
-        for server_name in server_map:
-            if server_name in tools_config and not tools_config[server_name]:
-                keys_to_remove.append(server_name)
-        
-        for key in keys_to_remove:
-            del server_map[key]
-            logger.info(f"MCP server '{key}' disabled via tools config.")
-
-        ha_enabled = tools_config.get("home_assistant", False) and (ha_url and ha_token)
-        
-        if ha_enabled:
+        if (ha_url and ha_token):
             # Ensure URL ends with /api/mcp for the MCP endpoint
             # If the user provided the base URL (e.g. http://localhost:8123), append /api/mcp
             if not ha_url.endswith("/api/mcp"):
@@ -60,6 +49,20 @@ class MCPService:
                     "Content-Type": "application/json"
                 }
             }
+        
+        # Determine if enabled: check tools config AND presence of credentials
+        # We use the 'tools' section to allow UI toggling
+        tools_config = self.config.get("tools", {})
+
+        # Filter servers based on tools config
+        keys_to_remove = []
+        for server_name in server_map:
+            if server_name in tools_config and not tools_config[server_name]:
+                keys_to_remove.append(server_name)
+        
+        for key in keys_to_remove:
+            del server_map[key]
+            logger.info(f"MCP server '{key}' disabled via tools config.")
         
         if not server_map:
             logger.warning("No MCP servers configured.")

@@ -8,10 +8,19 @@ import subprocess
 import tempfile
 import requests
 import ormsgpack
+import zipfile
+import shutil
 from faster_whisper import WhisperModel
 from kokoro import KPipeline
 import torch
 import torchaudio
+
+# Try importing Vosk
+try:
+    import vosk
+    HAS_VOSK = True
+except ImportError:
+    HAS_VOSK = False
 
 # Try importing TTS (Coqui)
 try:
@@ -54,13 +63,23 @@ class AudioService:
             self.asr_device = self.device
 
         # Initialize ASR
-        asr_config = config['asr']['whisper']
-        logger.info(f"Loading Faster-Whisper model ({asr_config['model_size']}) on {self.asr_device}...")
-        self.asr_model = WhisperModel(
-            asr_config['model_size'], 
-            device=self.asr_device, 
-            compute_type=asr_config.get('compute_type', 'int8')
-        )
+        self.asr_engine = config['asr'].get('engine', 'whisper')
+        
+        if self.asr_engine == 'vosk':
+            if HAS_VOSK:
+                self._init_vosk()
+            else:
+                logger.error("Vosk requested but not installed. Falling back to Whisper.")
+                self.asr_engine = 'whisper'
+
+        if self.asr_engine == 'whisper':
+            asr_config = config['asr']['whisper']
+            logger.info(f"Loading Faster-Whisper model ({asr_config['model_size']}) on {self.asr_device}...")
+            self.asr_model = WhisperModel(
+                asr_config['model_size'], 
+                device=self.asr_device, 
+                compute_type=asr_config.get('compute_type', 'int8')
+            )
 
         # Initialize TTS
         self.tts_engine = config['tts'].get('engine', 'kokoro')
@@ -87,6 +106,98 @@ class AudioService:
 
         if self.tts_engine == 'kokoro':
             self._init_kokoro()
+
+    def _init_vosk(self):
+        self.vosk_models = {}
+        vosk.SetLogLevel(-1) # Silence Vosk logs
+        
+        # Pre-load default language if specified
+        default_lang = self.config['asr'].get('vosk', {}).get('lang', 'en')
+        self.get_vosk_model(default_lang)
+
+    def get_vosk_model(self, lang):
+        if lang in self.vosk_models:
+            return self.vosk_models[lang]
+            
+        vosk_config = self.config['asr'].get('vosk', {})
+        models_map = vosk_config.get('models', {})
+        
+        # Fallback for backward compatibility or simple config
+        if not models_map:
+            model_path = vosk_config.get('model_path', 'pretrained_models/vosk/model')
+            models_map = {'en': model_path}
+            
+        model_path = models_map.get(lang)
+        if not model_path:
+            logger.warning(f"No Vosk model configured for language '{lang}'. Falling back to 'en'.")
+            lang = 'en'
+            model_path = models_map.get('en', 'pretrained_models/vosk/model_en')
+
+        if not os.path.exists(model_path):
+            logger.info(f"Vosk model for {lang} not found at {model_path}. Downloading...")
+            self._download_vosk_model(model_path, lang)
+            
+        logger.info(f"Loading Vosk model for {lang} from {model_path}...")
+        try:
+            model = vosk.Model(model_path)
+            self.vosk_models[lang] = model
+            return model
+        except Exception as e:
+            logger.error(f"Failed to load Vosk model for {lang}: {e}")
+            return None
+
+    def _download_vosk_model(self, dest_path, lang='en'):
+        # URLs for small models
+        urls = {
+            'en': "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip",
+            'de': "https://alphacephei.com/vosk/models/vosk-model-small-de-0.15.zip",
+            # Add more languages here as needed
+        }
+        
+        url = urls.get(lang, urls['en'])
+        
+        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+        
+        logger.info(f"Downloading Vosk model for {lang} from {url}...")
+        response = requests.get(url, stream=True)
+        
+        zip_path = dest_path + ".zip"
+        with open(zip_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+                
+        logger.info("Extracting Vosk model...")
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(os.path.dirname(dest_path))
+            
+        # Find the extracted folder name (it might vary)
+        extracted_name = os.path.basename(url).replace('.zip', '')
+        # Sometimes the zip content folder name doesn't match the zip name exactly, 
+        # but for these specific models it usually does.
+        
+        # Check what was extracted
+        parent_dir = os.path.dirname(dest_path)
+        extracted_path = os.path.join(parent_dir, extracted_name)
+        
+        if not os.path.exists(extracted_path):
+            # Fallback: look for any new directory in parent_dir
+            # This is a bit risky but helpful if name doesn't match
+            pass
+
+        if os.path.exists(extracted_path) and extracted_path != os.path.abspath(dest_path):
+            if os.path.exists(dest_path):
+                shutil.rmtree(dest_path)
+            shutil.move(extracted_path, dest_path)
+            
+        if os.path.exists(zip_path):
+            os.remove(zip_path)
+        logger.info(f"Vosk model for {lang} ready.")
+
+    def create_vosk_recognizer(self, lang='en'):
+        model = self.get_vosk_model(lang)
+        if not model:
+            return None
+        return vosk.KaldiRecognizer(model, 16000)
 
     def _init_elevenlabs(self):
         tts_config = self.config['tts']['elevenlabs']

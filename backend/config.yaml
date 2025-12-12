@@ -5,10 +5,17 @@ application:
   tts_enabled: true
 asr:
   engine: whisper
+  mode: server # client, server, fallback
   whisper:
     compute_type: int8
-    device: cpu
-    model_size: small
+    device: mps
+    model_size: tiny
+  vosk:
+    model_path: "pretrained_models/vosk/model"
+    models:
+      en: "pretrained_models/vosk/model_en"
+      de: "pretrained_models/vosk/model_de"
+    lang: "en"
 home_assistant:
   enabled: true
   token: ''
@@ -40,12 +47,15 @@ mcp:
     mcp-fetch:
       transport: sse
       url: http://127.0.0.1:4003/messages
+    notion:
+      transport: sse
+      url: http://127.0.0.1:4006/messages
     weather:
       transport: sse
       url: http://127.0.0.1:4004/messages
 openwb:
   enabled: true
-  ip: 192.168.1.68
+  ip: 192.168.1.74
 spotify:
   redirect_uri: http://127.0.0.1:8888/callback
 tools:
@@ -54,6 +64,7 @@ tools:
   google_calendar: true
   home_assistant: true
   news: true
+  notion: true
   openwb: true
   spotify: true
   system: true
