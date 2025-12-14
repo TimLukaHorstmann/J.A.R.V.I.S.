@@ -4,7 +4,7 @@ application:
   name: Jarvis
   tts_enabled: true
 asr:
-  engine: whisper
+  engine: vosk
   mode: server # client, server, fallback
   whisper:
     compute_type: int8

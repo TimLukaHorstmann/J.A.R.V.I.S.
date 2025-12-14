@@ -194,6 +194,13 @@ class AudioService:
         logger.info(f"Vosk model for {lang} ready.")
 
     def create_vosk_recognizer(self, lang='en'):
+        if not HAS_VOSK:
+            return None
+            
+        if not hasattr(self, 'vosk_models'):
+            self.vosk_models = {}
+            vosk.SetLogLevel(-1)
+
         model = self.get_vosk_model(lang)
         if not model:
             return None

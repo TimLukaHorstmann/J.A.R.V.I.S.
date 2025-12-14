@@ -16,6 +16,7 @@ from services.openwb import OpenWBService
 from agent.graph import JarvisAgent
 from database import DatabaseService
 from tools import get_local_tools
+from wake_word import contains_wake_word
 
 # Load environment variables
 env_path = os.path.join(os.path.dirname(__file__), "../.env")
@@ -98,6 +99,10 @@ async def update_settings(new_settings: dict):
     await mcp_service.cleanup()
     mcp_service.config = config
     await mcp_service.initialize()
+    
+    # Re-initialize Audio Service if needed (e.g. TTS engine changed)
+    # For now, we just update the config reference, but some services might need restart
+    audio_service.config = config
 
     # Re-initialize local tools to pick up changes (e.g. Spotify enabled/disabled)
     local_tools = get_local_tools(config)
@@ -236,13 +241,18 @@ async def websocket_endpoint(websocket: WebSocket):
     
     processing_task = None
     current_thinking_mode = True
+    listening_for_wake_word = False
     
     # Vosk Recognizer
     recognizer = None
+    wake_word_recognizer = None
     current_lang = config.get('asr', {}).get('vosk', {}).get('lang', 'en')
     
     if audio_service.asr_engine == 'vosk':
         recognizer = audio_service.create_vosk_recognizer(current_lang)
+        
+    # Always initialize a separate recognizer for wake word if possible
+    wake_word_recognizer = audio_service.create_vosk_recognizer('en')
     
     try:
         while True:
@@ -255,6 +265,26 @@ async def websocket_endpoint(websocket: WebSocket):
                 # Audio received
                 audio_bytes = message["bytes"]
                 
+                if listening_for_wake_word and wake_word_recognizer:
+                    # Use Vosk for wake word detection (expects raw 16kHz mono PCM)
+                    if wake_word_recognizer.AcceptWaveform(audio_bytes):
+                        result = json.loads(wake_word_recognizer.Result())
+                        text = result.get("text", "")
+                        if text:
+                            logger.info(f"Wake word stream heard: {text}")
+                            if contains_wake_word(text):
+                                logger.info(f"Wake word detected: {text}")
+                                await websocket.send_json({"type": "wake_word_detected"})
+                                listening_for_wake_word = False
+                                # Reset recognizer
+                                wake_word_recognizer.Reset()
+                    else:
+                        # Partial results for debugging
+                        # partial = json.loads(wake_word_recognizer.PartialResult())
+                        # logger.debug(f"Wake word partial: {partial.get('partial', '')}")
+                        pass
+                    continue
+
                 if audio_service.asr_engine == 'vosk' and recognizer:
                     # Vosk Streaming
                     if recognizer.AcceptWaveform(audio_bytes):
@@ -284,6 +314,10 @@ async def websocket_endpoint(websocket: WebSocket):
                     
                     if msg_type == "config":
                         current_thinking_mode = data.get("thinking", True)
+                        continue
+                    elif msg_type == "wake_word_detection":
+                        listening_for_wake_word = data.get("enabled", False)
+                        logger.info(f"Wake word detection mode: {listening_for_wake_word}")
                         continue
                     elif msg_type == "language":
                         new_lang = data.get("lang")

@@ -16,6 +16,8 @@ let currentSessionId = null;
 let isGenerating = false;
 let activeAgentMessage = null;
 let currentAudio = null;
+let serverWakeWordRecorder = null;
+let serverWakeWordStream = null;
 
 // Silence Detection State
 let audioContext = null;
@@ -101,6 +103,10 @@ const handleMessage = async (event) => {
                 }
             }
             loadSessions();
+        } else if (data.type === "wake_word_detected") {
+            console.log("Server detected wake word!");
+            stopServerWakeWordDetection();
+            startRecording();
         } else if (data.type === "history") {
             renderHistory(data.messages);
         } else if (data.type === "session_updated") {
@@ -806,52 +812,144 @@ function stopRecording() {
 // Wake Word Detection
 function initWakeWordDetection() {
     const wakeWordToggle = document.getElementById("wake-word-toggle");
+    
+    // Check if we should use server-side fallback immediately (e.g. if on Linux/Chromium without keys)
+    // For now, we try client-side first, and fallback on error.
+    
     if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
-        console.warn("Speech recognition not supported");
-        if (wakeWordToggle) wakeWordToggle.style.display = "none";
+        console.warn("Speech recognition not supported. Using Server-Side Detection.");
+        startServerWakeWordDetection();
         return;
     }
 
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    wakeWordRecognition = new SR();
-    wakeWordRecognition.continuous = true;
-    wakeWordRecognition.interimResults = false;
-    wakeWordRecognition.lang = 'en-US';
+    try {
+        wakeWordRecognition = new SR();
+        wakeWordRecognition.continuous = true;
+        wakeWordRecognition.interimResults = false;
+        wakeWordRecognition.lang = 'en-US';
 
-    wakeWordRecognition.onresult = (event) => {
-        const lastResult = event.results[event.results.length - 1];
-        if (lastResult.isFinal) {
-            const transcript = lastResult[0].transcript.toLowerCase().trim();
-            console.log("Heard:", transcript);
-            
-            if (transcript.includes("hey jarvis") || transcript.includes("jarvis")) {
-                console.log("Wake word detected!");
-                startRecording();
+        wakeWordRecognition.onresult = (event) => {
+            const lastResult = event.results[event.results.length - 1];
+            if (lastResult.isFinal) {
+                const transcript = lastResult[0].transcript.toLowerCase().trim();
+                console.log("Heard:", transcript);
+                
+                if (transcript.includes("hey jarvis") || transcript.includes("jarvis")) {
+                    console.log("Wake word detected!");
+                    startRecording();
+                }
             }
-        }
-    };
+        };
 
-    wakeWordRecognition.onerror = (event) => {
-        if (event.error === 'not-allowed') {
-            wakeWordEnabled = false;
-            updateWakeWordUI();
+        wakeWordRecognition.onerror = (event) => {
+            console.warn("SpeechRecognition error:", event.error);
+            if (event.error === 'not-allowed') {
+                wakeWordEnabled = false;
+                updateWakeWordUI();
+            } else if (event.error === 'network' || event.error === 'service-not-allowed' || event.error === 'no-speech') {
+                // Fallback to server-side
+                console.log("Switching to Server-Side Wake Word Detection due to error.");
+                if (wakeWordRecognition) {
+                    try { wakeWordRecognition.abort(); } catch(e) {}
+                    wakeWordRecognition = null;
+                }
+                startServerWakeWordDetection();
+            }
+        };
+        
+        wakeWordRecognition.onend = () => {
+            if (wakeWordEnabled && !isRecording && wakeWordRecognition) {
+                try { wakeWordRecognition.start(); } catch (e) {}
+            }
+        };
+
+        if (wakeWordEnabled) {
+            startWakeWordDetection();
         }
-    };
+    } catch (e) {
+        console.error("Error initializing SpeechRecognition:", e);
+        startServerWakeWordDetection();
+    }
+}
+
+function startServerWakeWordDetection() {
+    if (!wakeWordEnabled || isRecording) return;
+    if (serverWakeWordRecorder && serverWakeWordRecorder.state === 'recording') return;
+
+    console.log("Starting Server-Side Wake Word Detection...");
     
-    wakeWordRecognition.onend = () => {
-        if (wakeWordEnabled && !isRecording) {
-            try { wakeWordRecognition.start(); } catch (e) {}
-        }
-    };
+    // Notify server
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "wake_word_detection", enabled: true }));
+    }
 
-    if (wakeWordEnabled) {
-        startWakeWordDetection();
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+            serverWakeWordStream = stream;
+            
+            // Use AudioContext to get raw PCM data
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+            const source = audioContext.createMediaStreamSource(stream);
+            const processor = audioContext.createScriptProcessor(4096, 1, 1);
+            
+            source.connect(processor);
+            processor.connect(audioContext.destination);
+            
+            processor.onaudioprocess = (e) => {
+                if (!ws || ws.readyState !== WebSocket.OPEN) return;
+                
+                const inputData = e.inputBuffer.getChannelData(0);
+                // Convert Float32 to Int16
+                const buffer = new ArrayBuffer(inputData.length * 2);
+                const view = new DataView(buffer);
+                for (let i = 0; i < inputData.length; i++) {
+                    const s = Math.max(-1, Math.min(1, inputData[i]));
+                    view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+                }
+                ws.send(buffer);
+            };
+            
+            // Store context to close later
+            serverWakeWordRecorder = {
+                stop: () => {
+                    processor.disconnect();
+                    source.disconnect();
+                    audioContext.close();
+                },
+                state: 'recording'
+            };
+        })
+        .catch(err => {
+            console.error("Error accessing microphone for wake word:", err);
+            // Only disable if it's a permission error
+            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                wakeWordEnabled = false;
+                updateWakeWordUI();
+            }
+        });
+}
+
+function stopServerWakeWordDetection() {
+    if (serverWakeWordRecorder) {
+        serverWakeWordRecorder.stop();
+        serverWakeWordRecorder = null;
+    }
+    if (serverWakeWordStream) {
+        serverWakeWordStream.getTracks().forEach(track => track.stop());
+        serverWakeWordStream = null;
+    }
+    // Notify server
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "wake_word_detection", enabled: false }));
     }
 }
 
 function startWakeWordDetection() {
     if (wakeWordRecognition && wakeWordEnabled) {
         try { wakeWordRecognition.start(); } catch (e) {}
+    } else if (wakeWordEnabled) {
+        startServerWakeWordDetection();
     }
 }
 
@@ -859,6 +957,7 @@ function stopWakeWordDetection() {
     if (wakeWordRecognition) {
         try { wakeWordRecognition.abort(); } catch (e) {}
     }
+    stopServerWakeWordDetection();
 }
 
 function updateWakeWordUI() {
