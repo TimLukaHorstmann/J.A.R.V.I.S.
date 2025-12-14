@@ -21,3 +21,6 @@ backend/certs/
 backend/google_calendar_credentials.json
 
 frontend/assets/images/house_hologram*.png
+
+jarvis.service
+README_SERVICE.md
