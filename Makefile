@@ -26,7 +26,7 @@ download-model:
 llm-server:
 	@echo "Starting Local LLM Server..."
 	@cd backend && \
-	MODEL_INFO=$$(uv run python -c "import yaml; c=yaml.safe_load(open('config.yaml')); print(c['llm']['local_dir'] + '/' + c['llm']['filename'] + '|' + str(c['llm']['context_window']))") && \
+	MODEL_INFO=$$(uv run python -c "import yaml; c=yaml.safe_load(open('config.yaml')); print(c['llm']['local']['local_dir'] + '/' + c['llm']['local']['filename'] + '|' + str(c['llm']['context_window']))") && \
 	MODEL_PATH=$$(echo "$$MODEL_INFO" | cut -d'|' -f1) && \
 	CTX_SIZE=$$(echo "$$MODEL_INFO" | cut -d'|' -f2) && \
 	echo "Model: $$MODEL_PATH" && \

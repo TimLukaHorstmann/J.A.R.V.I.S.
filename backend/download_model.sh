@@ -10,14 +10,12 @@ download_model() {
     echo "Downloading $filename from $repo_id..."
     mkdir -p "$local_dir"
     
-    # Use huggingface-cli if available, otherwise curl (but hf-cli is better for caching)
-    # We assume huggingface_hub is installed via pip
-    uv run huggingface-cli download "$repo_id" "$filename" --local-dir "$local_dir" --local-dir-use-symlinks False
+    uv run hf download "$repo_id" "$filename" --local-dir "$local_dir" --local-dir-use-symlinks False
 }
 
 # Read config using python
 echo "Reading configuration from config.yaml..."
-CONFIG_VALUES=$(uv run python -c "import yaml; config=yaml.safe_load(open('config.yaml')); print(f\"{config['llm']['repo_id']}|{config['llm']['filename']}|{config['llm']['local_dir']}\")")
+CONFIG_VALUES=$(uv run python -c "import yaml; config=yaml.safe_load(open('config.yaml')); print(f\"{config['llm']['local']['repo_id']}|{config['llm']['local']['filename']}|{config['llm']['local']['local_dir']}\")")
 
 REPO_ID=$(echo "$CONFIG_VALUES" | cut -d'|' -f1)
 FILENAME=$(echo "$CONFIG_VALUES" | cut -d'|' -f2)

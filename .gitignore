@@ -20,6 +20,10 @@ backend/agent/prompts.py
 backend/certs/
 backend/google_calendar_credentials.json
 
+backend/roborock_test.py
+backend/services/room_mapping.py
+
+
 frontend/assets/images/house_hologram*.png
 
 jarvis.service

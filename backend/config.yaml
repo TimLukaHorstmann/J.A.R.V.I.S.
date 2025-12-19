@@ -4,35 +4,36 @@ application:
   name: Jarvis
   tts_enabled: true
 asr:
-  engine: vosk
-  mode: server # client, server, fallback
+  engine: whisper
+  mode: server
+  vosk:
+    lang: en
+    model_path: pretrained_models/vosk/model
+    models:
+      de: pretrained_models/vosk/model_de
+      en: pretrained_models/vosk/model_en
   whisper:
     compute_type: int8
     device: mps
     model_size: tiny
-  vosk:
-    model_path: "pretrained_models/vosk/model"
-    models:
-      en: "pretrained_models/vosk/model_en"
-      de: "pretrained_models/vosk/model_de"
-    lang: "en"
 home_assistant:
   enabled: true
   token: ''
   url: http://localhost:8123
 llm:
   base_url: http://localhost:8000/v1
+  provider: local # options: [local, ollama-cloud, gemini]
   context_window: 10240
-  filename: Qwen3-0.6B-Q8_0.gguf
+  local:
+    repo_id:  "unsloth/functiongemma-270m-it-GGUF" # Qwen/Qwen3-0.6B-GGUF
+    filename: "functiongemma-270m-it-Q4_K_M.gguf" # Qwen3-0.6B-Q8_0.gguf
+    local_dir: pretrained_models/llm
+    model_alias: Gemma
   gemini:
     model: gemini-2.5-flash
-  local_dir: pretrained_models/llm
-  model_alias: Qwen3
   ollama_cloud:
     base_url: https://ollama.com
     model: gpt-oss:20b-cloud
-  provider: ollama-cloud
-  repo_id: Qwen/Qwen3-0.6B-GGUF
 mcp:
   servers:
     brave_search:
@@ -66,6 +67,7 @@ tools:
   news: true
   notion: true
   openwb: true
+  roborock: true
   spotify: true
   system: true
   translator: true

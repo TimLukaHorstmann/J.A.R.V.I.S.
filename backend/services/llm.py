@@ -54,7 +54,7 @@ class LLMService:
             self.llm = ChatOpenAI(
                 base_url=config['llm']['base_url'],
                 api_key="EMPTY",
-                model=config['llm']['model_alias'],
+                model=config['llm']['local']['model_alias'],
                 temperature=0.7,
                 streaming=True
             )

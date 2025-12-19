@@ -16,6 +16,7 @@ from langchain_core.tools import tool
 from services.spotify import SpotifyService
 from services.system import SystemService
 from services.home_assistant import HomeAssistantService
+from services.roborock import RoborockService
 from database import DatabaseService
 
 # Global service instances (initialized in get_local_tools)
@@ -23,6 +24,7 @@ spotify_service = None
 system_service = None
 ha_service = None
 openwb_service = None
+roborock_service = None
 db_service = DatabaseService() # Initialize DB service for memory tools
 
 @tool
@@ -560,16 +562,140 @@ def retrieve_info(key: str) -> str:
     except Exception as e:
         return f"Error retrieving memory: {e}"
 
+@tool
+def start_vacuum() -> str:
+    """Start the Roborock vacuum cleaner."""
+    if roborock_service:
+        return roborock_service.start_cleaning()
+    return "Roborock service is not initialized."
+
+@tool
+def pause_vacuum() -> str:
+    """Pause the Roborock vacuum cleaner."""
+    if roborock_service:
+        return roborock_service.pause_cleaning()
+    return "Roborock service is not initialized."
+
+@tool
+def dock_vacuum() -> str:
+    """Send the Roborock vacuum cleaner back to the dock to charge."""
+    if roborock_service:
+        return roborock_service.return_to_dock()
+    return "Roborock service is not initialized."
+
+@tool
+def vacuum_status() -> str:
+    """Get the current status of the Roborock vacuum cleaner."""
+    if roborock_service:
+        return roborock_service.get_status()
+    return "Roborock service is not initialized."
+
+@tool
+def wash_mop() -> str:
+    """Start washing the mop on the Roborock dock (if supported)."""
+    if roborock_service:
+        return roborock_service.start_wash()
+    return "Roborock service is not initialized."
+
+@tool
+def empty_dust_bin() -> str:
+    """Start emptying the dust bin on the Roborock dock (if supported)."""
+    if roborock_service:
+        return roborock_service.start_empty_bin()
+    return "Roborock service is not initialized."
+
+@tool
+def get_vacuum_rooms() -> str:
+    """Get the list of rooms (segments) from the Roborock vacuum."""
+    if roborock_service:
+        return roborock_service.get_rooms()
+    return "Roborock service is not initialized."
+
+@tool
+def clean_specific_rooms(room_ids: str) -> str:
+    """
+    Clean specific rooms using the Roborock vacuum.
+    Args:
+        room_ids: A comma-separated list of room IDs (integers), e.g., "16, 17".
+    """
+    if roborock_service:
+        try:
+            ids = [int(x.strip()) for x in room_ids.split(",")]
+            return roborock_service.clean_rooms(ids)
+        except ValueError:
+            return "Invalid room IDs format. Please provide comma-separated integers."
+    return "Roborock service is not initialized."
+
+@tool
+def clean_room_by_name(room_name: str) -> str:
+    """
+    Send the Roborock vacuum to clean a specific room by name.
+    Args:
+        room_name: The name of the room (e.g., "Kitchen", "Living Room").
+    """
+    if roborock_service:
+        return roborock_service.clean_room_by_name(room_name)
+    return "Roborock service is not initialized."
+
+@tool
+def find_robot() -> str:
+    """
+    Make the Roborock vacuum play a sound to locate it.
+    """
+    if roborock_service:
+        return roborock_service.find_robot()
+    return "Roborock service is not initialized."
+
+@tool
+def stop_vacuum() -> str:
+    """Stop the Roborock vacuum cleaner."""
+    if roborock_service:
+        return roborock_service.stop_cleaning()
+    return "Roborock service is not initialized."
+
+@tool
+def set_vacuum_mode(mode: str) -> str:
+    """
+    Set the cleaning mode of the Roborock vacuum.
+    Args:
+        mode: One of "vacuum", "mop", "both".
+    """
+    if roborock_service:
+        return roborock_service.set_mode(mode)
+    return "Roborock service is not initialized."
+
+@tool
+def roborock_request_login_code() -> str:
+    """
+    Request a login code for Roborock authentication.
+    The code will be sent to the configured email address.
+    """
+    if roborock_service:
+        return roborock_service.request_code()
+    return "Roborock service is not initialized."
+
+@tool
+def roborock_submit_login_code(code: str) -> str:
+    """
+    Submit the login code received via email to complete Roborock authentication.
+    Args:
+        code: The verification code sent to your email.
+    """
+    if roborock_service:
+        return roborock_service.submit_code(code)
+    return "Roborock service is not initialized."
+
 def get_local_tools(config, openwb_instance=None):
     """
     Initialize services and return a list of all local tools.
     """
-    global spotify_service, system_service, ha_service, openwb_service
+    global spotify_service, system_service, ha_service, openwb_service, roborock_service
     
     # Initialize services
     spotify_service = SpotifyService(config)
     system_service = SystemService()
     ha_service = HomeAssistantService(config)
+    roborock_service = RoborockService(config)
     
     # OpenWB is passed in because it runs a background thread managed by app.py
     if openwb_instance:
@@ -612,6 +738,13 @@ def get_local_tools(config, openwb_instance=None):
 
     if tools_config.get("openwb", False):
         tools.append(get_wallbox_status)
+
+    if tools_config.get("roborock", True):
+        tools.extend([
+            start_vacuum, pause_vacuum, dock_vacuum, vacuum_status, wash_mop, empty_dust_bin, 
+            get_vacuum_rooms, clean_specific_rooms, clean_room_by_name, find_robot, stop_vacuum, set_vacuum_mode,
+            roborock_request_login_code, roborock_submit_login_code
+        ])
 
     # Memory is always enabled as it's core
     tools.extend([remember_info, retrieve_info])
