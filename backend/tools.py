@@ -17,6 +17,7 @@ from services.spotify import SpotifyService
 from services.system import SystemService
 from services.home_assistant import HomeAssistantService
 from services.roborock import RoborockService
+from services.eufy import EufyService
 from database import DatabaseService
 
 # Global service instances (initialized in get_local_tools)
@@ -25,7 +26,59 @@ system_service = None
 ha_service = None
 openwb_service = None
 roborock_service = None
+eufy_service = None
 db_service = DatabaseService() # Initialize DB service for memory tools
+
+@tool
+async def list_security_cameras() -> str:
+    """
+    Lists all available Eufy security cameras and their status (battery, etc.).
+    """
+    if not eufy_service or not eufy_service.enabled:
+        return "Eufy security service is not enabled."
+    
+    devices = await eufy_service.get_devices()
+    if not devices:
+        return "No cameras found or connection to Eufy Station failed."
+    
+    return json.dumps(devices, indent=2)
+
+@tool
+async def stream_security_camera(camera_name: str) -> str:
+    """
+    Starts a live video stream for a specific security camera.
+    Returns an HTML snippet with an iframe to view the stream.
+    
+    Args:
+        camera_name: The name or partial name of the camera (e.g. "Front Door").
+    """
+    if not eufy_service or not eufy_service.enabled:
+        return "Eufy security service is not enabled."
+    
+    devices = await eufy_service.get_devices()
+    target_device = None
+    
+    # Simple fuzzy match
+    for dev in devices:
+        if camera_name.lower() in dev["name"].lower():
+            target_device = dev
+            break
+            
+    if not target_device:
+        return f"Camera '{camera_name}' not found. Available: {', '.join([d['name'] for d in devices])}"
+    
+    stream_url = await eufy_service.start_stream(target_device["serial"])
+    
+    if "Error" in stream_url:
+        return stream_url
+        
+    # Return HTML for the frontend to render
+    return f"""
+<div class="video-widget" style="width:100%; height:400px; background:#000; border-radius:8px; overflow:hidden; margin: 10px 0;">
+    <iframe src="{stream_url}" style="width:100%; height:100%; border:none;" allowfullscreen></iframe>
+</div>
+"""
+
 
 @tool
 def get_wallbox_status() -> str:
@@ -685,17 +738,77 @@ def roborock_submit_login_code(code: str) -> str:
         return roborock_service.submit_code(code)
     return "Roborock service is not initialized."
 
+@tool
+async def list_security_cameras() -> str:
+    """
+    Lists all available Eufy security cameras and their status (battery, etc.).
+    """
+    if not eufy_service or not eufy_service.enabled:
+        return "Eufy security service is not enabled."
+    
+    devices = await eufy_service.get_devices()
+    if not devices:
+        return "No cameras found or connection to Eufy Station failed."
+    
+    # Format a nice summary
+    summary = []
+    for d in devices:
+        summary.append({
+            "name": d.get("name"),
+            "serial": d.get("serial"),
+            "battery": d.get("battery", "Unknown"),
+            "model": d.get("model"),
+            "connected": d.get("connected")
+        })
+    return json.dumps(summary, indent=2)
+
+@tool
+async def stream_security_camera(camera_name: str) -> str:
+    """
+    Starts a live video stream for a specific security camera.
+    Returns an HTML snippet with an iframe to view the stream.
+    
+    Args:
+        camera_name: The name or serial number of the camera.
+    """
+    if not eufy_service or not eufy_service.enabled:
+        return "Eufy security service is not enabled."
+    
+    devices = await eufy_service.get_devices()
+    if not devices:
+        return "No cameras found. Please ensure Eufy devices are connected."
+    
+    target_cam = None
+    for d in devices:
+        if camera_name.lower() in d.get("name", "").lower() or camera_name in d.get("serial", ""):
+            target_cam = d
+            break
+            
+    if not target_cam:
+        available = [d.get("name") for d in devices]
+        return f"Camera '{camera_name}' not found. Available cameras: {', '.join(available)}"
+    
+    serial = target_cam.get("serial")
+    stream_url = await eufy_service.start_stream(serial)
+    
+    if "Error" in stream_url:
+        return stream_url
+        
+    # Return HTML for frontend (iframe)
+    return f"""<iframe src="{stream_url}" width="100%" height="400" frameborder="0" allowfullscreen></iframe>"""
+
 def get_local_tools(config, openwb_instance=None):
     """
     Initialize services and return a list of all local tools.
     """
-    global spotify_service, system_service, ha_service, openwb_service, roborock_service
+    global spotify_service, system_service, ha_service, openwb_service, roborock_service, eufy_service
     
     # Initialize services
     spotify_service = SpotifyService(config)
     system_service = SystemService()
     ha_service = HomeAssistantService(config)
     roborock_service = RoborockService(config)
+    eufy_service = config.get("eufy_service")
     
     # OpenWB is passed in because it runs a background thread managed by app.py
     if openwb_instance:
@@ -745,6 +858,9 @@ def get_local_tools(config, openwb_instance=None):
             get_vacuum_rooms, clean_specific_rooms, clean_room_by_name, find_robot, stop_vacuum, set_vacuum_mode,
             roborock_request_login_code, roborock_submit_login_code
         ])
+
+    if tools_config.get("eufy", False):
+        tools.extend([list_security_cameras, stream_security_camera])
 
     # Memory is always enabled as it's core
     tools.extend([remember_info, retrieve_info])

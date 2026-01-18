@@ -41,6 +41,9 @@ dependencies = [
     "vosk",
     "python-roborock>=3.16.1",
     "pyshark>=0.6",
+    "websockets",
+    "aiohttp",
+    "spacy>=3.8.11",
 ]
 
 [project.optional-dependencies]

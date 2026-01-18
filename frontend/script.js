@@ -1156,6 +1156,10 @@ const toolMetadata = {
         title: 'Memory',
         desc: 'Long-term memory storage for remembering user preferences and facts.'
     },
+    eufy: {
+        title: 'Eufy Security',
+        desc: 'Integration for Eufy cameras to view live streams and check status.'
+    },
     notion: {
         title: 'Notion',
         desc: 'Integrates with Notion to read and write notes, tasks, and databases.'

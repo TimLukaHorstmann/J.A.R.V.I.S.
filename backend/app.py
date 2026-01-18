@@ -13,6 +13,7 @@ from services.audio import AudioService
 from services.llm import LLMService
 from services.mcp import MCPService
 from services.openwb import OpenWBService
+from services.eufy import EufyService
 from agent.graph import JarvisAgent
 from database import DatabaseService
 from tools import get_local_tools
@@ -53,6 +54,7 @@ audio_service = AudioService(config)
 llm_service = LLMService(config)
 mcp_service = MCPService(config)
 openwb_service = OpenWBService(config)
+eufy_service = EufyService(config)
 db_service = DatabaseService()
 agent = None
 
@@ -60,13 +62,20 @@ agent = None
 async def startup_event():
     global agent
     await mcp_service.initialize()
-    local_tools = get_local_tools(config, openwb_service)
+    await eufy_service.initialize()
+    
+    # Inject eufy service into config for tools.py
+    tool_config = config.copy()
+    tool_config["eufy_service"] = eufy_service
+    
+    local_tools = get_local_tools(tool_config, openwb_service)
     agent = JarvisAgent(llm_service, mcp_service, local_tools)
     logger.info("✅ JARVIS 2.0 Backend Ready")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     await mcp_service.cleanup()
+
 
 # ─── Settings API ─────────────────────────────────────────────────────────────
 def save_config():
@@ -85,6 +94,14 @@ async def update_settings(new_settings: dict):
     if "spotify" in new_settings:
         config["spotify"] = new_settings["spotify"]
         
+    if "eufy" in new_settings:
+        config["eufy"] = new_settings["eufy"]
+        # Update service dynamically
+        eufy_service.config = config["eufy"]
+        eufy_service.enabled = config["eufy"].get("enabled", False)
+        if eufy_service.enabled and not eufy_service.connected:
+            await eufy_service.initialize()
+
     if "tools" in new_settings:
         config["tools"] = new_settings["tools"]
 
@@ -152,6 +169,40 @@ async def add_memory(request: dict):
 async def delete_memory(key: str):
     db_service.delete_memory(key)
     return {"status": "ok"}
+
+# ─── Eufy Camera API ──────────────────────────────────────────────────────────
+@app.get("/api/eufy/devices")
+async def get_eufy_devices():
+    """
+    Get list of all Eufy security cameras and their status.
+    """
+    if not eufy_service or not eufy_service.enabled:
+        return JSONResponse({"error": "Eufy service not enabled"}, status_code=503)
+    
+    try:
+        devices = await eufy_service.get_devices()
+        return JSONResponse({"devices": devices})
+    except Exception as e:
+        logger.error(f"Error getting Eufy devices: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.get("/api/eufy/stream/{serial}")
+async def get_eufy_stream(serial: str):
+    """
+    Start streaming for a specific camera by serial number.
+    Returns the streaming URL.
+    """
+    if not eufy_service or not eufy_service.enabled:
+        return JSONResponse({"error": "Eufy service not enabled"}, status_code=503)
+    
+    try:
+        stream_url = await eufy_service.start_stream(serial)
+        if "Error" in stream_url:
+            return JSONResponse({"error": stream_url}, status_code=400)
+        return JSONResponse({"stream_url": stream_url})
+    except Exception as e:
+        logger.error(f"Error starting stream for {serial}: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 # ─── WebSocket Endpoint ───────────────────────────────────────────────────────
 async def process_conversation(websocket: WebSocket, user_text: str, session_id: str, thinking_enabled: bool = True):

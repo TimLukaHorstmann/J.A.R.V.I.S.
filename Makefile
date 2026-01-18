@@ -34,6 +34,12 @@ llm-server:
 	uv run python -m llama_cpp.server --model "$$MODEL_PATH" --n_gpu_layers -1 --n_ctx $$CTX_SIZE --host 0.0.0.0 --port 8000
 
 run:
+	@echo "Starting go2rtc Streaming Server..."
+	@(cd backend && ./start_go2rtc.sh > logs/go2rtc.log 2>&1 &)
+	@sleep 1
+	@echo "Starting Eufy Security WebSocket Server..."
+	@(cd backend && ./start_eufy_server.sh > logs/eufy.log 2>&1 &)
+	@sleep 2
 	@echo "Starting MCP Servers..."
 	cd backend && ./start_mcp_servers.sh
 	@echo "Ensuring SSL Certificates..."
@@ -42,6 +48,10 @@ run:
 	cd backend && uv run uvicorn app:app --host 0.0.0.0 --port 8080 --reload --proxy-headers --forwarded-allow-ips '*' --ssl-keyfile certs/key.pem --ssl-certfile certs/cert.pem
 
 stop:
+	@echo "Stopping go2rtc..."
+	@-pkill -f "go2rtc" 2>/dev/null || sudo pkill -f "go2rtc" 2>/dev/null || true
+	@echo "Stopping Eufy Server..."
+	@pkill -f "eufy-security-ws" || true
 	@echo "Stopping MCP Servers..."
 	cd backend && ./stop_mcp_servers.sh
 

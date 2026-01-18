@@ -4,7 +4,7 @@ application:
   name: Jarvis
   tts_enabled: true
 asr:
-  engine: whisper
+  engine: vosk
   mode: server
   vosk:
     lang: en
@@ -16,24 +16,33 @@ asr:
     compute_type: int8
     device: mps
     model_size: tiny
+eufy:
+  country: DE
+  enabled: true
+  password: ''
+  username: ''
+  ws_url: ws://localhost:3000
+go2rtc:
+  api_url: http://localhost:1984/api
+  stream_url: http://localhost:1984/stream.html
 home_assistant:
   enabled: true
   token: ''
   url: http://localhost:8123
 llm:
   base_url: http://localhost:8000/v1
-  provider: local # options: [local, ollama-cloud, gemini]
-  context_window: 10240
-  local:
-    repo_id:  "unsloth/functiongemma-270m-it-GGUF" # Qwen/Qwen3-0.6B-GGUF
-    filename: "functiongemma-270m-it-Q4_K_M.gguf" # Qwen3-0.6B-Q8_0.gguf
-    local_dir: pretrained_models/llm
-    model_alias: Gemma
+  context_window: 10000
   gemini:
     model: gemini-2.5-flash
+  local:
+    filename: functiongemma-270m-it-Q4_K_M.gguf
+    local_dir: pretrained_models/llm
+    model_alias: Gemma
+    repo_id: unsloth/functiongemma-270m-it-GGUF
   ollama_cloud:
     base_url: https://ollama.com
-    model: gpt-oss:20b-cloud
+    model: nemotron-3-nano:30b-cloud
+  provider: ollama-cloud
 mcp:
   servers:
     brave_search:
@@ -62,6 +71,7 @@ spotify:
 tools:
   calculator: true
   currency: true
+  eufy: true
   google_calendar: true
   home_assistant: true
   news: true
@@ -85,7 +95,7 @@ tts:
     similarity_boost: 0.75
     stability: 0.5
     voice_id: 3ykCLzjor6Ws3YQsVXP9
-  engine: elevenlabs
+  engine: kokoro
   fish_speech:
     reference_audio_path: voice_samples/jarvis_sample.wav
     reference_text_path: voice_samples/jarvis/sample.lab

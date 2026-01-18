@@ -19,12 +19,17 @@ backend/uv.lock
 backend/agent/prompts.py
 backend/certs/
 backend/google_calendar_credentials.json
+backend/eufy-security-ws/
+backend/bin/
 
 backend/roborock_test.py
 backend/services/room_mapping.py
+backend/go2rtc.yaml
 
 
 frontend/assets/images/house_hologram*.png
 
 jarvis.service
 README_SERVICE.md
+
+
