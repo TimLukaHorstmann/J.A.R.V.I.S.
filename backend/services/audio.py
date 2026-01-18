@@ -14,6 +14,7 @@ from faster_whisper import WhisperModel
 from kokoro import KPipeline
 import torch
 import torchaudio
+import importlib
 
 # Try importing Vosk
 try:
@@ -242,11 +243,48 @@ class AudioService:
             self.fs_ref_text_content = ""
 
     def _init_kokoro(self):
+        # Kokoro uses misaki's English G2P which will attempt to auto-download
+        # spaCy models via `spacy.cli.download(...)` if missing. That can fail on
+        # some systems (e.g. TLS/CA issues) and may raise SystemExit, taking down
+        # the whole backend. We avoid runtime downloads and fail gracefully.
         tts_config = self.config['tts']['kokoro']
-        logger.info("Loading Kokoro TTS...")
-        self.tts_pipeline = KPipeline(lang_code=tts_config['lang_code'])
-        self.tts_voice = tts_config['voice']
-        self.sample_rate = tts_config.get('sample_rate', 24000)
+        lang_code = str(tts_config.get('lang_code', '')).lower()
+
+        # Map Kokoro aliases used upstream.
+        english_aliases = {"en-us", "en-gb"}
+        is_english_kokoro = lang_code in {"a", "b"} or lang_code in english_aliases
+
+        if is_english_kokoro:
+            try:
+                spacy = importlib.import_module("spacy")
+                # misaki expects en_core_web_sm unless trf=True (we don't use trf here)
+                if not spacy.util.is_package("en_core_web_sm"):
+                    logger.error(
+                        "Kokoro English TTS requires spaCy model 'en_core_web_sm', but it is not installed. "
+                        "Auto-download is disabled to keep the backend running. "
+                        "Install it manually once TLS/network is fixed (e.g. `uv pip install en-core-web-sm==3.8.0`)."
+                    )
+                    self.tts_engine = None
+                    logger.warning("TTS has been disabled due to missing spaCy model.")
+                    return
+            except Exception as e:
+                logger.error(
+                    f"Kokoro English TTS requires spaCy + 'en_core_web_sm', but spaCy check failed: {e}"
+                )
+                self.tts_engine = None
+                logger.warning("TTS has been disabled due to initialization failure.")
+                return
+
+        try:
+            logger.info("Loading Kokoro TTS...")
+            self.tts_pipeline = KPipeline(lang_code=tts_config['lang_code'])
+            self.tts_voice = tts_config['voice']
+            self.sample_rate = tts_config.get('sample_rate', 24000)
+        except BaseException as e:
+            # Includes SystemExit from spaCy CLI / pip failures.
+            logger.error(f"Failed to initialize Kokoro TTS: {e}")
+            self.tts_engine = None
+            logger.warning("TTS has been disabled due to initialization failure.")
 
     def _init_chatterbox(self):
         tts_config = self.config['tts']['chatterbox']
